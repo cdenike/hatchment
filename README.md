@@ -128,6 +128,37 @@ Two things worth knowing about the preview:
   synthesise braille cells as solid blocks; GTK draws the font's actual dot
   glyphs. Same characters, same file, different rasteriser.
 
+### Following the Omarchy theme
+
+The window follows the active Omarchy theme, and re-tints live when it changes —
+no restart.
+
+Most of that is not this app's doing, and shouldn't be. Omarchy ships a
+`theme-set` hook that renders `~/.config/gtk-4.0/gtk.css` from the active
+theme's `colors.toml` on every change, so *every* GTK app already follows the
+theme; GTK loads that file at USER priority, above anything an application sets
+for itself. Armiger detects that stylesheet and stays out of its way — including
+leaving its deliberate alpha alone, so the window sits over the wallpaper like
+the rest of the desktop rather than punching an opaque rectangle through it.
+
+What the app does set is the **arms' colour**, taken from the theme's `accent`.
+The art is a plain label, so with no rule it would inherit the window foreground
+and read as ordinary text. It is the one purely decorative thing on screen, so
+it gets the loudest colour in the palette.
+
+Where no retint hook exists, the app falls back to applying the palette to
+libadwaita's named colours itself, so it still matches on a bare system.
+
+Two details that cost a debugging round each, recorded so they don't again:
+
+- **Reloading a `Gtk.CssProvider` in place does not re-resolve `@define-color`.**
+  The plain rules update and the named colours do not, leaving the window half
+  in the new theme and half in the old. Removing the provider and adding a fresh
+  one invalidates everything properly.
+- **The palette is under `current/theme/colors.toml`**, while `theme.name` sits
+  beside it in `current/`. Both are watched, because `omarchy theme set` and
+  `omarchy theme refresh` touch different ones.
+
 ## Usage
 
 ```bash

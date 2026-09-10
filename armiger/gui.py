@@ -18,6 +18,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
+from . import theme
 from .cli import (FASTFETCH_LOGO, SCREENSAVER, draw_at, generate, write)
 from .draw import render
 
@@ -32,7 +33,7 @@ PREVIEW_COLS = 30
 # grid of dots instead of a filled area. Nerd Fonts draw them to tile, and
 # JetBrainsMono is what Omarchy ships as its terminal default, so the preview
 # matches what the art will look like where it ends up.
-CSS = b"""
+BASE_CSS = """
 .arms {
   font-family: "JetBrainsMono Nerd Font", "JetBrainsMono NF", monospace;
   font-size: 15px;
@@ -42,6 +43,82 @@ CSS = b"""
 .blazon { font-size: 15px; font-weight: 600; }
 .seed { font-family: monospace; opacity: 0.6; font-size: 11px; }
 """
+
+
+USER_GTK_CSS = pathlib.Path.home() / ".config/gtk-4.0/gtk.css"
+
+
+def _user_stylesheet_themes_gtk():
+    """True when something already re-tints GTK from the Omarchy theme.
+
+    Omarchy installs a `theme-set` hook that renders ~/.config/gtk-4.0/gtk.css
+    from the active palette on every theme change, so GTK apps follow the theme
+    with no help from us. GTK loads that file at USER priority, above an
+    application provider, so our named colours would lose to it anyway -- and
+    should: it deliberately gives windows alpha 0.78 to sit over the wallpaper,
+    which a flat opaque override would trample.
+    """
+    try:
+        return "@define-color window_bg_color" in USER_GTK_CSS.read_text()
+    except OSError:
+        return False
+
+
+def build_css(colours):
+    """Base styling, the accent for the art, and a palette fallback.
+
+    The art's colour is ours to set in every case: it is a plain label, so
+    without a rule it takes the window foreground, and the accent is the whole
+    point of asking. The named colours below are only a fallback for systems
+    with no retint hook -- where one exists, it wins and is better.
+    """
+    css = BASE_CSS
+    if not colours:
+        return css.encode()
+
+    if _user_stylesheet_themes_gtk():
+        accent = colours.get("accent")
+        if accent:
+            css += "\n.arms { color: %s; }\n" % accent
+        return css.encode()
+
+    def c(key, fallback=None):
+        return colours.get(key, fallback)
+
+    bg = c("background")
+    fg = c("foreground")
+    accent = c("accent")
+    card = c("lighter_background", bg)
+    # Text sitting *on* the accent needs to contrast with it, and the darkest
+    # background in the palette is the safest bet in a dark theme -- the
+    # foreground is usually close to the accent in brightness.
+    on_accent = c("dark_background", bg)
+
+    defs = []
+    if bg:
+        defs += [f"@define-color window_bg_color {bg};",
+                 f"@define-color view_bg_color {bg};",
+                 f"@define-color headerbar_bg_color {bg};",
+                 f"@define-color popover_bg_color {card};",
+                 f"@define-color dialog_bg_color {bg};"]
+    if fg:
+        defs += [f"@define-color window_fg_color {fg};",
+                 f"@define-color view_fg_color {fg};",
+                 f"@define-color headerbar_fg_color {fg};",
+                 f"@define-color popover_fg_color {fg};",
+                 f"@define-color dialog_fg_color {fg};"]
+    if card:
+        defs.append(f"@define-color card_bg_color {card};")
+    if accent:
+        defs += [f"@define-color accent_bg_color {accent};",
+                 f"@define-color accent_color {accent};"]
+        if on_accent:
+            defs.append(f"@define-color accent_fg_color {on_accent};")
+        # The art itself takes the accent: it is the one element on screen that
+        # is purely decorative, so it can carry the theme's loudest colour.
+        css += "\n.arms { color: %s; }\n" % accent
+
+    return ("\n".join(defs) + "\n" + css).encode()
 
 
 class ArmigerWindow(Adw.ApplicationWindow):
@@ -240,13 +317,71 @@ class ArmigerApp(Adw.Application):
                          flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
 
     def do_activate(self):
-        provider = Gtk.CssProvider()
-        provider.load_from_data(CSS)
-        Gtk.StyleContext.add_provider_for_display(
-            Gdk.Display.get_default(), provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.provider = None
+        self.apply_theme()
+        self.watch_theme()
         win = self.props.active_window or ArmigerWindow(self)
         win.present()
+
+    def apply_theme(self):
+        """Install a *fresh* provider each time rather than reloading one.
+
+        `@define-color` values are resolved into the cascade when a provider is
+        parsed, and reloading the same provider in place does not re-resolve
+        what already depends on them: the plain rules update, the named colours
+        do not, and the window ends up half in the new theme and half in the
+        old. Removing the provider and adding a new one invalidates the lot.
+        """
+        colours = theme.palette()
+        display = Gdk.Display.get_default()
+        provider = Gtk.CssProvider()
+        provider.load_from_data(build_css(colours))
+        if self.provider is not None:
+            Gtk.StyleContext.remove_provider_for_display(display, self.provider)
+        Gtk.StyleContext.add_provider_for_display(
+            display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.provider = provider
+        # Tell libadwaita which way round the palette is, so the widgets it
+        # styles without our named colours still land on the right side.
+        style = Adw.StyleManager.get_default()
+        style.set_color_scheme(
+            Adw.ColorScheme.FORCE_DARK if theme.is_dark(colours)
+            else Adw.ColorScheme.FORCE_LIGHT)
+
+    def watch_theme(self):
+        """Re-tint when the Omarchy theme changes underneath us.
+
+        Two files are watched, because `omarchy theme set` and `omarchy theme
+        refresh` touch different ones: the first rewrites theme.name, the second
+        only rewrites the palette in place. Watching the state directory itself
+        would be simpler but reports every file the switch rewrites, which is
+        dozens of events for one change.
+        """
+        self._monitors = []
+        for path in (theme.NAME, theme.COLORS):
+            try:
+                gfile = Gio.File.new_for_path(str(path))
+                monitor = gfile.monitor_file(Gio.FileMonitorFlags.NONE, None)
+            except GLib.Error:
+                continue
+            monitor.connect("changed", self._on_theme_changed)
+            self._monitors.append(monitor)
+
+    def _on_theme_changed(self, _monitor, _f, _other, event):
+        if event in (Gio.FileMonitorEvent.CHANGES_DONE_HINT,
+                     Gio.FileMonitorEvent.CREATED,
+                     Gio.FileMonitorEvent.MOVED_IN):
+            # A theme switch rewrites several files; coalesce the burst so the
+            # CSS is rebuilt once rather than per file.
+            if getattr(self, "_retint_pending", False):
+                return
+            self._retint_pending = True
+            GLib.timeout_add(150, self._retint)
+
+    def _retint(self):
+        self._retint_pending = False
+        self.apply_theme()
+        return GLib.SOURCE_REMOVE
 
 
 def main():
