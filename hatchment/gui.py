@@ -26,6 +26,21 @@ from .draw import render
 
 APP_ID = "org.omarchy.hatchment"
 
+
+def _tiling_wm():
+    """True when the compositor closes windows itself.
+
+    Under a tiling compositor the client-side close button is dead weight: the
+    window is closed with a keybinding, nothing is dragged by the titlebar, and
+    the button is one more thing to mis-click. Hyprland is detected explicitly
+    rather than "is this Wayland", because a floating Wayland desktop such as
+    GNOME still wants its controls.
+    """
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+        return True
+    desktops = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
+    return any(w in desktops for w in ("hyprland", "sway", "river", "niri"))
+
 # Preview width. Wider than the fastfetch default so the window shows detail,
 # but each install target re-renders at its own width rather than scaling this.
 PREVIEW_COLS = 30
@@ -135,6 +150,9 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.toasts = Adw.ToastOverlay()
         view = Adw.ToolbarView()
         header = Adw.HeaderBar()
+        if _tiling_wm():
+            header.set_show_end_title_buttons(False)
+            header.set_show_start_title_buttons(False)
         view.add_top_bar(header)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)

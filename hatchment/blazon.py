@@ -163,6 +163,7 @@ class Blazon:
         self.charge_anchor = "centre"
         self.line_style = "plain"
         self.pattern = None
+        self.pattern_seed = 0
 
     def _charge_pool(self, max_complexity):
         pool = []
@@ -191,6 +192,11 @@ class Blazon:
             pool = (patterns.FRACTAL if self.theme == "fractal"
                     else patterns.GEOMETRIC)
             self.pattern = rng.choice(sorted(pool))
+            # The generators randomise their own depth, count and rotation, so
+            # the choice has to be pinned here rather than re-rolled at draw
+            # time: the same arms are rendered at three different widths, and
+            # they must come out the same picture each time.
+            self.pattern_seed = rng.getrandbits(32)
             self.field2 = pick_contrasting(self.field, rng)
             return self
 

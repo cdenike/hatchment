@@ -548,8 +548,10 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
     out.append(f'<rect x="0" y="0" width="{w}" height="{h}" '
                f'fill="{_fill(blazon.field, solid)}"/>')
     if getattr(blazon, "pattern", None):
+        import random as _random
         from . import patterns as _pat
-        shapes = "".join(_pat.shapes(blazon.pattern))
+        _rng = _random.Random(getattr(blazon, "pattern_seed", 0))
+        shapes = "".join(_pat.shapes(blazon.pattern, _rng))
         out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
     elif blazon.variation:
         from .blazon import VARIATIONS

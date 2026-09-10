@@ -100,9 +100,20 @@ heraldry already had both registers.
   billet, banner, and rearing lion and horse
 - **Cosmic** — sun in splendour, estoile, comet, increscent, orb, mullet,
   crescent, annulet, eagle
-- **Fractal** — Sierpinski gasket, mandala, nested lozenges, Koch snowflake
+- **Fractal** — Sierpinski gasket, Sierpinski carpet, Vicsek fractal, Koch
+  snowflake, mandala, nested polygons, H-tree, Cantor bars, flower of life,
+  recursive circles
 - **Geometric** — concentric rings, compass spokes, triangular tessellation,
-  nested squares
+  nested squares, hexagonal grid, star polygon, diagonal lattice, square grid,
+  sunburst, moiré rings
+
+Ten of each, and each is a *family* rather than a picture: every generator draws
+its own depth, count, rotation, phase and mode from the roll's rng, so the same
+name gives a different figure every time. Star polygons vary their {n/k}
+schläfli pair, the square grid switches between chequer, outline and dots, the
+Sierpinski gasket inverts. The parameters are pinned to a seed stored on the
+arms, because the same arms get rendered at three different widths and have to
+come out the same picture each time.
 
 The last two are **not heraldry and do not pretend to be** — no herald ever
 blazoned a Sierpinski gasket. They treat the shield as a frame for a pattern,
@@ -171,6 +182,11 @@ the hatched vector. Type a seed to reproduce arms you liked, and setting the
 screensaver only takes over the screen if you tick the box.
 
 It ships a desktop entry, so it also shows up in the app launcher.
+
+Under a tiling compositor — Hyprland, Sway, river, niri — the window drops its
+client-side titlebar buttons. Nothing is dragged by the titlebar there and the
+window is closed with a keybinding, so a close button is dead weight and one
+more thing to mis-click. Floating desktops keep theirs.
 
 Two things worth knowing about the preview:
 
