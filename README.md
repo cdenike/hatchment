@@ -168,7 +168,9 @@ These are complexity 4, which means they only appear at **26 columns or wider**:
 below roughly 50 dots across a beast stops reading as an animal and becomes a
 blot, so the generator is restricted to shapes whose silhouette survives —
 stars, crescents, towers — rather than being allowed to pick a lion and produce
-mush. The fastfetch logo renders at 30 columns, so they show up there.
+mush. Whether they can appear in your fastfetch logo therefore depends on your
+terminal: the logo is sized to the room beside the info block, so a wide
+terminal gets beasts and a narrow sidebar gets towers and stars.
 
 ## Plain language
 
@@ -291,8 +293,20 @@ Every roll prints its seed, so arms you like can be recovered exactly.
 
 ### Wiring it into fastfetch
 
-`--fastfetch` writes `~/.config/fastfetch/coat-of-arms.txt`. Point fastfetch at
-it once:
+`--fastfetch` writes `~/.config/fastfetch/coat-of-arms.txt`, sized to the room
+your terminal actually has: the logo shares its lines with the info block, so
+the width is `terminal - info - padding`, less one spare column. All three are
+measured rather than assumed — `fastfetch --logo none` renders the info block on
+its own, and the gap between that and a full render is the padding, so a config
+that pads differently is accounted for without parsing `config.jsonc`.
+
+Run it from the terminal you actually use for fastfetch — that is the one it
+measures. Run from a pipe or from the GUI, where there is no terminal to ask, it
+keeps the width of the logo already installed, on the grounds that whatever
+wrote that file last did have one; failing that it uses 24 columns, which leaves
+an 80-column terminal enough for the default info block.
+
+Point fastfetch at it once:
 
 ```jsonc
 "logo": {
@@ -304,10 +318,21 @@ it once:
 ### Wiring it into the Omarchy screensaver
 
 `--screensaver` writes `~/.config/omarchy/branding/screensaver.txt`, which is the
-same file `omarchy branding screensaver` manages, rendered wider since the
-screensaver has more room than a fastfetch sidebar. Without `--no-reload` it
+same file `omarchy branding screensaver` manages, rendered to fit the screen it
+will actually appear on — the shield takes about 60% of the screen's height, and
+where there are several monitors the smallest one decides, since every
+screensaver window reads this one file. Without `--no-reload` it
 also runs `omarchy-launch-screensaver force`, which puts the screensaver on
 screen immediately so you can see the result.
+
+The terminal it will be shown in does not exist yet at that point, so asking how
+big it is would measure the wrong window: the grid is worked out from the
+monitor geometry instead, against the 18pt font `omarchy-launch-screensaver`
+pins for the screensaver in all four terminals it supports. With no compositor
+to ask, it falls back to 24 columns, which fits the shortest screen this is
+likely to run on. Art that is a little small is a modest shield on a wide
+screen; art that is taller than the terminal is clipped, and ttfx then has
+nothing left to centre.
 
 New arms every login, if you want them — add to your shell profile:
 

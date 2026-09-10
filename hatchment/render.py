@@ -14,6 +14,7 @@ work the standard library already does -- 21 MiB of dependency and a process
 spawn per render to compare bytes against a number.
 """
 
+import collections
 import struct
 import subprocess
 import zlib
@@ -166,6 +167,43 @@ def encode(grid):
     return "\n".join(rows)
 
 
+class Fit(collections.namedtuple("Fit", "cols rows why")):
+    """A chosen art size, and the reason it came out that size.
+
+    Carried around together because every caller that picks a size also wants
+    to say why: a width that arrives without its reasoning is indistinguishable
+    from a magic number, which is what this whole mechanism replaced.
+    """
+
+    def __str__(self):
+        return "%d cols x %d lines, %s" % (self.cols, self.rows, self.why)
+
+
+def fit_cols(cols, why):
+    """A Fit for `cols` wide, filling in the height it implies."""
+    return Fit(cols, rows_for_cols(cols), why)
+
+
+def rows_for_cols(cols, aspect=100.0 / 115.0):
+    """Height in character cells that `cols` of art will occupy."""
+    return max(1, round(cols * 2 * DOT_ASPECT / aspect / 4))
+
+
+def cols_for_rows(rows, aspect=100.0 / 115.0):
+    """Widest art that still fits in `rows` character cells.
+
+    The inverse of rows_for_cols, which is not quite the same as dividing: that
+    function rounds, so the arithmetic inverse can land one row over the budget.
+    Stepping down until it actually fits is what makes this safe to size a
+    screen with -- a height that is one row too tall is exactly the failure
+    this is here to avoid.
+    """
+    cols = int(rows * 4 * aspect / (2 * DOT_ASPECT))
+    while cols > 1 and rows_for_cols(cols, aspect) > rows:
+        cols -= 1
+    return max(1, cols)
+
+
 def to_braille(svg, cols, aspect=100.0 / 115.0, threshold=50):
     """Render an SVG string to braille art `cols` characters wide.
 
@@ -175,5 +213,5 @@ def to_braille(svg, cols, aspect=100.0 / 115.0, threshold=50):
     out at different heights depending on their charges.
     """
     dots_w = cols * 2
-    rows = max(1, round(dots_w * DOT_ASPECT / aspect / 4))
+    rows = rows_for_cols(cols, aspect)
     return encode(bitmap(svg.encode(), dots_w, rows * 4, threshold))

@@ -7,6 +7,7 @@ import random
 import subprocess
 import sys
 
+from . import fastfetch, screensaver
 from .blazon import Blazon
 from .draw import render
 from .gloss import plain
@@ -14,12 +15,6 @@ from .render import to_braille
 
 FASTFETCH_LOGO = pathlib.Path.home() / ".config/fastfetch/coat-of-arms.txt"
 SCREENSAVER = pathlib.Path.home() / ".config/omarchy/branding/screensaver.txt"
-
-# Width of the fastfetch logo, chosen to match the logo Omarchy ships: its
-# about.txt is 26 rows by 45 columns, and the shield's 100x115 box lands at
-# roughly 45x27 from 44 columns. Also comfortably past the complexity
-# threshold, so beasts can appear here.
-FASTFETCH_COLS = 44
 
 # Ink outside this band means the art has collapsed: a near-empty shield, or a
 # near-solid one where the tinctures have run together. Re-roll rather than
@@ -145,17 +140,23 @@ def main(argv=None):
             render(blazon, spacing=5.0, stroke=1.1, solid=False, size=900))
 
     if args.fastfetch:
-        write(FASTFETCH_LOGO, draw_at(blazon, FASTFETCH_COLS))
+        # The logo shares its lines with the info block, so the terminal decides
+        # how wide it may be -- see hatchment.fastfetch. A constant here was
+        # only ever right in a terminal the width of the one it was picked in.
+        size = fastfetch.fit(FASTFETCH_LOGO)
+        write(FASTFETCH_LOGO, draw_at(blazon, size.cols))
         if not args.quiet:
-            print("\n-> %s" % FASTFETCH_LOGO, file=sys.stderr)
+            print("\n-> %s (%s)" % (FASTFETCH_LOGO, size), file=sys.stderr)
 
     if args.screensaver:
-        # The screensaver has far more room than the fastfetch sidebar, so it
-        # gets its own render rather than a scaled-up copy of a 24-column one,
-        # which would just be blocky.
-        write(SCREENSAVER, draw_at(blazon, 56))
+        # The screensaver gets its own render rather than a scaled-up copy of
+        # the printed art -- scaling braille resamples it into mush -- and its
+        # width comes from the screen rather than a constant, because a constant
+        # is only ever right on the monitor it was chosen on.
+        size = screensaver.fit()
+        write(SCREENSAVER, draw_at(blazon, size.cols))
         if not args.quiet:
-            print("-> %s" % SCREENSAVER, file=sys.stderr)
+            print("-> %s (%s)" % (SCREENSAVER, size), file=sys.stderr)
         # `force` relaunches the screensaver, which means it takes the screen
         # immediately -- fine when the user asked for a preview, rude in the
         # middle of something, hence the opt-out.

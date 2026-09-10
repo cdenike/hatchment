@@ -18,9 +18,9 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from . import theme
+from . import fastfetch, screensaver, theme
 from .gloss import plain
-from .cli import (FASTFETCH_COLS, FASTFETCH_LOGO, SCREENSAVER,
+from .cli import (FASTFETCH_LOGO, SCREENSAVER,
                   draw_at, generate, write)
 from .draw import render
 
@@ -331,14 +331,17 @@ class HatchmentWindow(Adw.ApplicationWindow):
             return
         # Re-rendered at the fastfetch width rather than reusing the preview:
         # the sidebar is narrower, and scaling braille art is not a thing.
-        write(FASTFETCH_LOGO, draw_at(self.blazon, FASTFETCH_COLS))
-        self.toast("Set as fastfetch logo")
+        size = fastfetch.fit(FASTFETCH_LOGO)
+        write(FASTFETCH_LOGO, draw_at(self.blazon, size.cols))
+        self.toast("Set as fastfetch logo (%s)" % size)
 
     def on_screensaver(self, _btn):
         if not self.blazon:
             return
-        write(SCREENSAVER, draw_at(self.blazon, 56))
-        self.toast("Set as screensaver branding")
+        # Sized to the screen rather than to a constant: see hatchment.screensaver.
+        size = screensaver.fit()
+        write(SCREENSAVER, draw_at(self.blazon, size.cols))
+        self.toast("Set as screensaver branding (%s)" % size)
         if self.preview_check.get_active():
             subprocess.run(["omarchy-launch-screensaver", "force"],
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
