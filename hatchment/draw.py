@@ -714,8 +714,14 @@ def _seme_shapes(name, rng, w, h):
     return "".join(out)
 
 
-def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
-    """Produce the SVG string for a Blazon."""
+def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"):
+    """Produce the SVG string for a Blazon.
+
+    `ground` paints behind the shield. It exists for the braille transcoder,
+    which trims to ink and would otherwise eat the argent areas; a target that
+    composites the shield over something of its own -- a bar icon over a bar --
+    passes None instead and gets transparency outside the shield edge.
+    """
     w, h = SHIELD_BOX
     out = []
     out.append(f'<svg xmlns="http://www.w3.org/2000/svg" '
@@ -729,7 +735,8 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
 
     # White ground first: the transcoder trims to ink, so the shield must sit on
     # something opaque or the trim eats the argent areas.
-    out.append(f'<rect x="0" y="0" width="{w}" height="{h}" fill="#fff"/>')
+    if ground:
+        out.append(f'<rect x="0" y="0" width="{w}" height="{h}" fill="{ground}"/>')
     out.append('<g clip-path="url(#shield)">')
 
     # Field, then the second half if the arms are divided.

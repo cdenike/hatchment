@@ -7,7 +7,7 @@ import random
 import subprocess
 import sys
 
-from . import fastfetch, screensaver
+from . import fastfetch, menuicon, screensaver
 from .blazon import Blazon
 from .draw import render
 from .gloss import plain
@@ -108,6 +108,10 @@ def main(argv=None):
                    help="install as the fastfetch logo")
     p.add_argument("--screensaver", action="store_true",
                    help="install as the Omarchy screensaver branding")
+    p.add_argument("--menu-icon", action="store_true",
+                   help="wear the arms as the Omarchy menu button")
+    p.add_argument("--menu-icon-off", action="store_true",
+                   help="put Omarchy's own menu button back")
     p.add_argument("--svg", metavar="PATH",
                    help="also write the full-colour-hatched SVG here")
     p.add_argument("--no-reload", action="store_true",
@@ -115,6 +119,13 @@ def main(argv=None):
                         "(the restart takes over the screen)")
     p.add_argument("--quiet", action="store_true", help="print nothing but the art")
     args = p.parse_args(argv)
+
+    # Restoring needs no arms, so it happens before the roll rather than after
+    # generating a shield nobody asked to see.
+    if args.menu_icon_off:
+        print(menuicon.restore(), file=sys.stderr)
+        if not (args.fastfetch or args.screensaver or args.menu_icon):
+            return 0
 
     seed = args.seed if args.seed is not None else os.urandom(8).hex()
     rng = random.Random(seed)
@@ -147,6 +158,15 @@ def main(argv=None):
         write(FASTFETCH_LOGO, draw_at(blazon, size.cols))
         if not args.quiet:
             print("\n-> %s (%s)" % (FASTFETCH_LOGO, size), file=sys.stderr)
+
+    if args.menu_icon:
+        if not menuicon.available():
+            print("no Omarchy shell config; menu icon not installed",
+                  file=sys.stderr)
+        else:
+            result = menuicon.install(blazon)
+            if not args.quiet:
+                print("-> %s (%s)" % (menuicon.ICON, result), file=sys.stderr)
 
     if args.screensaver:
         # The screensaver gets its own render rather than a scaled-up copy of

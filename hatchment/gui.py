@@ -18,7 +18,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from . import fastfetch, screensaver, theme
+from . import fastfetch, menuicon, screensaver, theme
 from .gloss import plain
 from .cli import (FASTFETCH_LOGO, SCREENSAVER,
                   draw_at, generate, write)
@@ -244,14 +244,28 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.ss_btn.connect("clicked", self.on_screensaver)
         actions.append(self.ss_btn)
 
+        # Installing and exporting are different kinds of act -- one dresses the
+        # desktop, the other hands you a file -- and five buttons in one
+        # homogeneous row leaves each too narrow to read its own label.
+        self.menu_btn = Gtk.Button(label="Set menu icon")
+        self.menu_btn.connect("clicked", self.on_menu_icon)
+        if not menuicon.available():
+            self.menu_btn.set_sensitive(False)
+            self.menu_btn.set_tooltip_text(
+                "Needs an Omarchy shell config at ~/.config/omarchy/shell.json")
+        actions.append(self.menu_btn)
+        box.append(actions)
+
+        exports = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8,
+                          homogeneous=True)
         self.svg_btn = Gtk.Button(label="Export SVG…")
         self.svg_btn.connect("clicked", self.on_export, "svg")
-        actions.append(self.svg_btn)
+        exports.append(self.svg_btn)
 
         self.png_btn = Gtk.Button(label="Export PNG…")
         self.png_btn.connect("clicked", self.on_export, "png")
-        actions.append(self.png_btn)
-        box.append(actions)
+        exports.append(self.png_btn)
+        box.append(exports)
 
         # Installing screensaver branding can either write quietly or take over
         # the screen to show the result. Default to quiet; asking for the
@@ -273,9 +287,10 @@ class HatchmentWindow(Adw.ApplicationWindow):
 
     def set_busy(self, busy):
         self.busy = busy
-        for b in (self.roll_btn, self.ff_btn, self.ss_btn, self.svg_btn,
-                  self.png_btn):
-            b.set_sensitive(not busy)
+        for b in (self.roll_btn, self.ff_btn, self.ss_btn, self.menu_btn,
+                  self.svg_btn, self.png_btn):
+            b.set_sensitive(not busy and (b is not self.menu_btn
+                                          or menuicon.available()))
         self.roll_btn.set_label("Rolling…" if busy else "Randomise")
 
     # -- actions --
@@ -342,6 +357,23 @@ class HatchmentWindow(Adw.ApplicationWindow):
         size = fastfetch.fit(FASTFETCH_LOGO)
         write(FASTFETCH_LOGO, draw_at(self.blazon, size.cols))
         self.toast("Set as fastfetch logo (%s)" % size)
+
+    def on_menu_icon(self, _btn):
+        """Put the current arms on the Omarchy menu button.
+
+        Always sets rather than toggling: the button is next to the other two
+        install buttons and should mean what they mean, and a control that
+        removed the icon on a second press would fight the obvious way of
+        keeping the bar in step with a new roll. `--menu-icon-off` undoes it.
+        """
+        if not self.blazon or not menuicon.available():
+            return
+        try:
+            result = menuicon.install(self.blazon)
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            self.toast("Could not set the menu icon: %s" % exc)
+            return
+        self.toast(result.capitalize())
 
     def on_screensaver(self, _btn):
         if not self.blazon:

@@ -287,6 +287,8 @@ hatchment --svg arms.svg           # hatched vector export
 hatchment --fastfetch              # install as the fastfetch logo
 hatchment --screensaver            # install as screensaver branding
 hatchment --screensaver --no-reload  # ...without taking the screen
+hatchment --menu-icon              # wear the arms as the Omarchy menu button
+hatchment --menu-icon-off          # put Omarchy's own button back
 ```
 
 Every roll prints its seed, so arms you like can be recovered exactly.
@@ -333,6 +335,35 @@ to ask, it falls back to 24 columns, which fits the shortest screen this is
 likely to run on. Art that is a little small is a modest shield on a wide
 screen; art that is taller than the terminal is clipped, and ttfx then has
 nothing left to centre.
+
+### Wearing the arms on the bar
+
+`--menu-icon` puts the arms on the button at the left end of the Omarchy bar,
+where the Omarchy mark normally sits. In the window it is the **Set menu icon**
+button, beside the other two install buttons.
+
+That button is a glyph — `text: "\ue900"` in Omarchy's icon font — so there is
+no icon path to point at and nothing in `shell.json` to override. What the bar
+does support is third-party widgets, so this installs one:
+`~/.config/omarchy/plugins/hatchment.menu/`, holding a manifest, a small
+`BarWidget.qml` that draws an image, and the arms as a PNG. Setting the icon
+again just replaces the PNG.
+
+The Omarchy menu plugin is left enabled and untouched. Its manifest sets
+`keepLoaded`, so the menu is still there to be summoned even with its own bar
+widget out of the layout — which is why the replacement button only has to run
+the same two commands the original does: the menu on left click, a terminal on
+right click.
+
+The whole change to your config is one id in the bar layout,
+`omarchy.menu` → `hatchment.menu`. `--menu-icon-off` swaps it back in place.
+`shell.json` is rewritten atomically and with the same indentation and key
+order Omarchy's own writers use, so it neither gets caught half-written by the
+shell's hot reload nor churns the file's formatting.
+
+The icon is drawn solid rather than hatched, on nothing rather than on white:
+hatching is mush at seventeen pixels, and a white ground would put a pale
+square on the bar instead of a shield.
 
 ### Cell shape
 
