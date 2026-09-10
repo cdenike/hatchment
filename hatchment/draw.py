@@ -181,6 +181,26 @@ def _division_polygon(name, style, w, h):
         left = lines.points((-6, h + 6), apex, style)
         right = lines.points(apex, (w + 6, h + 6), style)
         return left + right[1:] + [(w + 6, -6), (-6, -6)]
+    if name == "per bend sinister":
+        edge = lines.points((w, -6), (0, h), style)
+        return edge + [(w + 6, h + 6)]
+    # quarterly and per saltire are two regions each, so they are returned as a
+    # list of polygons by _division_regions instead.
+    return []
+
+
+def _division_regions(name, style, w, h):
+    """Divisions made of more than one patch of the second tincture."""
+    cx, cy = w / 2, h * 0.47
+    if name == "quarterly":
+        return [[(cx, -6), (w + 6, -6), (w + 6, cy), (cx, cy)],
+                [(-6, cy), (cx, cy), (cx, h + 6), (-6, h + 6)]]
+    if name == "per saltire":
+        # Four triangles meeting at the fess point; the flanking pair is the
+        # second tincture, which is what makes it read as a saltire cut rather
+        # than as quarterly turned forty-five degrees.
+        return [[(cx, cy), (-6, -6), (-6, h + 6)],
+                [(cx, cy), (w + 6, -6), (w + 6, h + 6)]]
     return []
 
 
@@ -640,7 +660,58 @@ def _ordinary_shape(name):
         return ('<polygon points="50,32 108,92 108,116 50,56 -8,116 -8,92"/>')
     if name == "chief":
         return '<rect x="-5" y="-5" width="110" height="34"/>'
+    if name == "bordure":
+        # A band following the rim. Drawn as the shield outline stroked thickly;
+        # the clip trims the outer half, leaving a border of even width.
+        return f'<path d="{SHIELD}" fill="none" stroke="#000" stroke-width="22"/>'
+    if name == "orle":
+        # The same idea set in from the edge, so a strip of field shows outside
+        # it -- that gap is the whole difference from a bordure.
+        return ('<g transform="translate(50,57.5) scale(0.80) translate(-50,-57.5)">'
+                f'<path d="{SHIELD}" fill="none" stroke="#000" stroke-width="12"/></g>')
+    if name == "canton":
+        return '<rect x="-5" y="-5" width="42" height="42"/>'
+    if name == "gyron":
+        return '<polygon points="-5,-5 50,57 -5,57"/>'
+    if name == "pile":
+        return '<polygon points="8,-5 92,-5 50,88"/>'
+    if name == "pall":
+        return ('<polygon points="-6,-6 16,-6 50,44 84,-6 106,-6 '
+                '62,58 62,120 38,120 38,58"/>')
+    if name == "bend sinister":
+        return '<polygon points="110,10 92,-10 -15,90 3,110"/>'
+    if name == "fess double":
+        return ('<rect x="-5" y="30" width="110" height="15"/>'
+                '<rect x="-5" y="62" width="110" height="15"/>')
+    if name == "pale double":
+        return ('<rect x="24" y="-5" width="15" height="125"/>'
+                '<rect x="61" y="-5" width="15" height="125"/>')
     return ""
+
+
+def _seme_shapes(name, rng, w, h):
+    """A field strewn with one small charge, repeated to the edges.
+
+    Rows are offset by half a step so the strewing reads as scattered rather
+    than as a grid, and everything overruns the box because the clip is what
+    cuts the charges at the rim -- half a charge at the edge is correct.
+    """
+    cols = rng.choice([4, 5, 6])
+    r = (w / cols) * 0.30
+    sx = w / cols
+    sy = sx * 1.05
+    out = []
+    row = 0
+    y = -sy * 0.4
+    while y < h + sy:
+        offset = (sx / 2) if row % 2 else 0
+        x = -sx * 0.4 + offset
+        while x < w + sx:
+            out.append(_charge_path(name, x, y, r))
+            x += sx
+        y += sy
+        row += 1
+    return "".join(out)
 
 
 def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
@@ -664,6 +735,12 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
     # Field, then the second half if the arms are divided.
     out.append(f'<rect x="0" y="0" width="{w}" height="{h}" '
                f'fill="{_fill(blazon.field, solid)}"/>')
+    if getattr(blazon, "seme", None):
+        import random as _r
+        _srng = _r.Random(getattr(blazon, "pattern_seed", 0) or 1)
+        out.append(f'<g fill="{_fill(blazon.field2, solid)}">'
+                   f'{_seme_shapes(blazon.seme, _srng, w, h)}</g>')
+
     if getattr(blazon, "pattern", None):
         import random as _random
         from . import patterns as _pat
@@ -677,9 +754,13 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
         out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
     elif blazon.division:
         style = getattr(blazon, "line_style", "plain")
-        poly = _division_polygon(blazon.division, style, w, h)
-        out.append(f'<polygon points="{_poly(poly)}" '
-                   f'fill="{_fill(blazon.field2, solid)}"/>')
+        regions = _division_regions(blazon.division, style, w, h)
+        if not regions:
+            regions = [_division_polygon(blazon.division, style, w, h)]
+        fill = _fill(blazon.field2, solid)
+        for poly in regions:
+            if poly:
+                out.append(f'<polygon points="{_poly(poly)}" fill="{fill}"/>')
 
     # The ordinary, outlined so it stays distinct where its hatching is close to
     # the field's.
@@ -714,10 +795,32 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
             out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.2">'
                        f'{_charge_path(blazon.charge, cx, cy, r)}</g>')
         else:
-            spots = [(30, 34 + drop), (70, 34 + drop), (50, 76 + drop * 0.4)]
-            for cx, cy in spots[:blazon.charge_count]:
+            # One arrangement per count, rather than truncating a list of three:
+            # two charges side by side and four in a square are the standard
+            # placings, and slicing a three-spot layout would put them off
+            # centre.
+            n = blazon.charge_count
+            d = drop * 0.6
+            layouts = {
+                2: ([(31, 46 + d), (69, 46 + d)], 15),
+                3: ([(30, 34 + d), (70, 34 + d), (50, 76 + d * 0.4)], 13),
+                4: ([(31, 32 + d), (69, 32 + d),
+                     (31, 70 + d), (69, 70 + d)], 12),
+                5: ([(30, 30 + d), (70, 30 + d), (50, 52 + d),
+                     (30, 74 + d), (70, 74 + d)], 10),
+            }
+            spots, rad = layouts.get(n, layouts[3])
+            for cx, cy in spots:
                 out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.1">'
-                           f'{_charge_path(blazon.charge, cx, cy, 13)}</g>')
+                           f'{_charge_path(blazon.charge, cx, cy, rad)}</g>')
+
+    if getattr(blazon, "bordure", None):
+        out.append(f'<g fill="none" stroke="{_fill(blazon.bordure, solid)}" '
+                   f'stroke-width="20">'
+                   f'<path d="{SHIELD}"/></g>'
+                   f'<path d="{SHIELD}" fill="none" stroke="#000" '
+                   f'stroke-width="1.4" transform="translate(50,57.5) '
+                   f'scale(0.80) translate(-50,-57.5)"/>')
 
     out.append("</g>")
     # The shield outline last, so nothing paints over it.

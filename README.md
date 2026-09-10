@@ -186,6 +186,36 @@ data rather than code — but shipping translations that cannot be checked would
 be worse than shipping none, so `LANGS` has a single entry and everything else
 falls back to English.
 
+## How much room there is
+
+Measured, not estimated: **120 consecutive rolls produce 117 distinct blazons**,
+with every feature class represented and none rejected by the legibility gate.
+
+The vocabulary the roll draws from:
+
+| | |
+|---|---|
+| Divisions | 7 — per pale, fess, bend, bend sinister, chevron, saltire, quarterly |
+| Ordinaries | 16 — including bordure, orle, canton, gyron, pile, pall, and doubled bars |
+| Variations | 7 |
+| Lines of partition | 6 |
+| Charges | 30, in counts of 1, 2, 3, 4 or 5, in four arrangements |
+| Semé | 12 charges strewn across the field |
+| Patterns | 20 fractal and geometric, each parameterised |
+| Tinctures | 7 plus 3 furs |
+
+Two of those do most of the widening. **Semé** — a field strewn with a small
+charge repeated to the edges — multiplies by the charge list rather than adding
+to it. And a **bordure** sits round the rim touching nothing else, so unlike
+every other element it can go on top of whatever was built first, which is
+exactly why real heraldry uses it to difference one branch of a family from
+another.
+
+Semé always takes a light ground. Flattened to two tones a colour field is solid
+black and the strewn charges become white holes in it: legible in principle,
+over the gate's ink ceiling in practice, so it would have been rolled and thrown
+away every single time.
+
 ## Graphical interface
 
 ```bash

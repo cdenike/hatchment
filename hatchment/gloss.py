@@ -158,6 +158,11 @@ def plain(blazon, table=None):
     elif blazon.division:
         parts.append(t["division"][blazon.division].format(
             a=colour(blazon.field), b=colour(blazon.field2)))
+    elif getattr(blazon, "seme", None):
+        word = t["charge"].get(blazon.seme, blazon.seme)
+        parts.append("%s strewn with %s %s"
+                     % (colour(blazon.field), colour(blazon.field2),
+                        _plural(word, t)))
     else:
         parts.append("%s" % colour(blazon.field))
 
@@ -188,6 +193,9 @@ def plain(blazon, table=None):
         else:
             count = t["numbers"].get(blazon.charge_count, str(blazon.charge_count))
             parts.append("%s %s %s" % (count, shade, _plural(word, t)))
+
+    if getattr(blazon, "bordure", None):
+        parts.append("a %s border" % colour(blazon.bordure))
 
     if not parts:
         return None

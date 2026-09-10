@@ -70,11 +70,18 @@ DIVISIONS = {
                  [(100, 0), (100, 100), (0, 100)]],
     "per chevron": [[(0, 100), (50, 45), (100, 100)],
                     [(0, 0), (100, 0), (100, 100), (50, 45), (0, 100)]],
+    # Geometry for these is generated rather than listed; the entries exist so
+    # the division can be rolled and named.
+    "quarterly": [],
+    "per saltire": [],
+    "per bend sinister": [],
 }
 
 # Ordinaries: the bold geometric charges. These are what actually read at low
 # resolution, so the generator leans on them heavily.
-ORDINARIES = ["cross", "fess", "pale", "bend", "chevron", "saltire", "chief"]
+ORDINARIES = ["cross", "fess", "pale", "bend", "chevron", "saltire", "chief",
+              "bordure", "canton", "pile", "orle", "pall", "gyron",
+              "bend sinister", "fess double", "pale double"]
 
 # Only these are drawn as a band with two long edges, so only these can carry a
 # line of partition. A cross or saltire would need every arm treated, which is
@@ -99,6 +106,13 @@ VARIATIONS = {
 # are the most medieval thing on a shield. Ermine is a white field strewn with
 # black tails; counter-ermine inverts it; vair is interlocking bells.
 FURS = ["ermine", "counter-ermine", "vair"]
+
+# Semé: a field strewn with small charges, repeated to the edges and cut off by
+# them. One line of vocabulary that multiplies by the whole charge list, and the
+# commonest thing in real heraldry that this generator was missing.
+SEME_CHARGES = ["mullet", "roundel", "lozenge", "billet", "crescent",
+                "fleur-de-lis", "annulet", "trefoil", "estoile", "bee",
+                "rose", "garb"]
 
 # Charges are simple silhouettes. Anything with interior detail (a lion's mane,
 # a spread eagle's feathers) turns to mud below about 60 dots wide, so the
@@ -187,6 +201,8 @@ class Blazon:
         self.line_style = "plain"
         self.pattern = None
         self.pattern_seed = 0
+        self.seme = None
+        self.bordure = None
 
     def _charge_pool(self, max_complexity):
         pool = []
@@ -214,8 +230,14 @@ class Blazon:
         # becomes a solid black shield that swallows everything on it, so most
         # arms want a light ground -- which is also how most real arms are
         # built, for the same legibility reason at a different distance.
-        self.field = (rng.choice(METALS) if rng.random() < 0.62
-                      else rng.choice(COLOURS))
+        roll_f = rng.random()
+        if roll_f < 0.10:
+            # A fur field, chosen up front rather than as an afterthought.
+            self.field = self.fur = rng.choice(FURS)
+        elif roll_f < 0.62:
+            self.field = rng.choice(METALS)
+        else:
+            self.field = rng.choice(COLOURS)
 
         # The pattern themes replace everything: the shield becomes a frame,
         # and an ordinary or a charge over a fractal is just noise on noise.
@@ -250,12 +272,6 @@ class Blazon:
         # as a normal ground and can carry an ordinary or a charge. Ermine is
         # counted as a metal for contrast, counter-ermine as a colour, which is
         # how heralds treat them.
-        if rng.random() < 0.16:
-            self.fur = rng.choice(FURS)
-            # The fur *is* the field from here on, so every contrast check
-            # downstream compares against it rather than the tincture it
-            # replaced.
-            self.field = self.fur
 
         # A divided field is its own visual interest, so it competes with an
         # ordinary. Pick one or the other, mostly, or arms get noisy.
@@ -266,6 +282,20 @@ class Blazon:
         # "per pale purpure and argent, a cross argent" is invisible on its own
         # dexter side. Heraldry's answer is to counterchange the ordinary along
         # the division, which needs finer resolution than a braille cell has.
+        # Semé replaces the plain ground with a strewn one. It still counts as
+        # a single tincture underneath for contrast, because the strewn charges
+        # are small and sparse enough that an ordinary over them still reads.
+        if rng.random() < 0.14:
+            # Semé needs a light ground. Flattened to two tones a colour field
+            # is solid black, and the strewn charges become white holes in it --
+            # legible in principle, over the gate's ink ceiling in practice, so
+            # it would be rolled and thrown away every time.
+            if not is_metal(self.field):
+                self.field = rng.choice(METALS)
+                self.fur = None
+            self.seme = rng.choice(SEME_CHARGES)
+            self.field2 = pick_contrasting(self.field, rng)
+
         # Three ways to build arms, and the third matters: a plain field
         # carrying only charges ("Argent, three mullets gules") is one of the
         # commonest real forms, and it is also the only route to the scattered
@@ -295,6 +325,12 @@ class Blazon:
             self.charge_anchor = HALVES.get(self.division)
         else:
             self.charge_anchor = "centre"
+
+        # A bordure sits round the rim and touches nothing else, so unlike every
+        # other addition here it can go on top of whatever was just built --
+        # which is exactly why real heraldry uses it to difference arms.
+        if rng.random() < 0.20 and not self.pattern:
+            self.bordure = pick_contrasting(self.field, rng)
 
         can_charge = self.charge_anchor is not None and (
             self._ordinary_covers_centre() or self.ordinary is None)
@@ -352,11 +388,18 @@ class Blazon:
         if self._ordinary_covers_centre() or self.charge_anchor != "centre":
             self.charge_count = 1
         else:
-            self.charge_count = rng.choice([1, 1, 1, 3])
+            self.charge_count = rng.choice([1, 1, 2, 3, 3, 4, 5])
+
+    # Ordinaries occupying the fess point, so a charge placed there sits on
+    # them rather than on the field. "fess double" and "pale double" are two
+    # bars with a gap between: the gap is exactly where the charge goes, so they
+    # leave the centre free. A bordure, orle, canton and gyron never reach it.
+    COVERS_CENTRE = ("fess", "pale", "cross", "bend", "saltire", "chevron",
+                     "pall", "pile", "bend sinister")
 
     def _ordinary_covers_centre(self):
         """True when the ordinary passes through the fess point."""
-        return self.ordinary in ("fess", "pale", "cross", "bend", "saltire", "chevron")
+        return self.ordinary in self.COVERS_CENTRE
 
     # -- description --
 
@@ -384,6 +427,12 @@ class Blazon:
             style = "" if self.line_style == "plain" else " " + self.line_style
             parts.append("%s%s %s and %s" % (self.division.capitalize(), style,
                                              self.field, self.field2))
+        elif self.seme:
+            # "Azure semé of fleurs-de-lis or" -- the field, then what is strewn
+            # across it, then the strewing's tincture.
+            parts.append("%s semé of %s %s" % (self.field.capitalize(),
+                                               self._plural(self.seme),
+                                               self.field2))
         else:
             parts.append(self.field.capitalize())
 
@@ -407,6 +456,9 @@ class Blazon:
                                                      str(self.charge_count)),
                                            self._plural(self.charge),
                                            self.charge_tincture))
+        if self.bordure:
+            # A bordure is blazoned last, after everything it surrounds.
+            parts.append("a bordure %s" % self.bordure)
         return ", ".join(parts)
 
     # Charges that do not take a plain "s". "attires" is already plural, so it
