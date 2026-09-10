@@ -175,6 +175,7 @@ class HatchmentWindow(Adw.ApplicationWindow):
 
         self.blazon = None
         self.busy = False
+        self._focus_before_busy = None
 
         self.toasts = Adw.ToastOverlay()
         view = Adw.ToolbarView()
@@ -425,12 +426,31 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.toasts.add_toast(Adw.Toast(title=text))
 
     def set_busy(self, busy):
+        """Disable the buttons for the duration of a roll, and keep the focus.
+
+        Disabling the focused widget takes focus off it, and the next focusable
+        thing in this window is the art label -- which is selectable, so it can
+        hold focus, and a focused selectable label draws a text caret at the
+        start of its text. That caret lands against the shield's top-left
+        corner and reads as a rendering fault: it appeared on launch, because
+        the window rolls once on startup, and came back on every roll after.
+        """
         self.busy = busy
+        if busy:
+            self._focus_before_busy = self.get_focus()
         for b in (self.roll_btn, self.ff_btn, self.ss_btn, self.menu_btn,
                   self.svg_btn, self.png_btn):
             b.set_sensitive(not busy and (b is not self.menu_btn
                                           or menuicon.available()))
         self.roll_btn.set_label("Rolling…" if busy else "Randomise")
+        if not busy:
+            # Back where it was -- unless that was the art label, or nothing,
+            # or something still disabled. The seed entry is never disabled, so
+            # someone who typed a seed and pressed Enter keeps their cursor.
+            target = self._focus_before_busy
+            if target is None or target is self.art or not target.get_sensitive():
+                target = self.roll_btn
+            target.grab_focus()
 
     # -- actions --
 
