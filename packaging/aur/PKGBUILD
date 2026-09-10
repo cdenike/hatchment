@@ -1,6 +1,6 @@
 # Maintainer: Caden DeNike <caden.denike@gmail.com>
 pkgname=hatchment
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Procedural heraldry for the terminal: a random coat of arms as braille art for fastfetch and the Omarchy screensaver"
 arch=('any')
@@ -11,7 +11,7 @@ optdepends=('gtk4: graphical interface'
             'libadwaita: graphical interface'
             'python-gobject: graphical interface')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('d655ebf2cee311a968dc48112932900e8edbf7310267dba60cc024142346ffa6')
+sha256sums=('0c62346ae8ca3ffcc0a2bc62ec671eb5005d626b498a8496cc028ff208e99011')
 
 package() {
   cd "$srcdir/$pkgname-$pkgver"

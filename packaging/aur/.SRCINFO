@@ -1,6 +1,6 @@
 pkgbase = hatchment
 	pkgdesc = Procedural heraldry for the terminal: a random coat of arms as braille art for fastfetch and the Omarchy screensaver
-	pkgver = 0.1.0
+	pkgver = 0.1.1
 	pkgrel = 1
 	url = https://github.com/cdenike/hatchment
 	arch = any
@@ -10,7 +10,7 @@ pkgbase = hatchment
 	optdepends = gtk4: graphical interface
 	optdepends = libadwaita: graphical interface
 	optdepends = python-gobject: graphical interface
-	source = hatchment-0.1.0.tar.gz::https://github.com/cdenike/hatchment/archive/v0.1.0.tar.gz
-	sha256sums = d655ebf2cee311a968dc48112932900e8edbf7310267dba60cc024142346ffa6
+	source = hatchment-0.1.1.tar.gz::https://github.com/cdenike/hatchment/archive/v0.1.1.tar.gz
+	sha256sums = 0c62346ae8ca3ffcc0a2bc62ec671eb5005d626b498a8496cc028ff208e99011
 
 pkgname = hatchment
