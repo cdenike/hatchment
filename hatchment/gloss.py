@@ -34,6 +34,9 @@ EN = {
         "per fess": ("{a} above, {b} below"),
         "per bend": ("{a} and {b}, split diagonally"),
         "per chevron": ("{a} and {b}, split by a chevron"),
+        "per bend sinister": ("{a} and {b}, split the other diagonal"),
+        "quarterly": ("{a} and {b} in quarters"),
+        "per saltire": ("{a} and {b}, split by a diagonal cross"),
     },
     "variation": {
         "barry": "horizontal stripes of {a} and {b}",
@@ -52,6 +55,15 @@ EN = {
         "chevron": "a {t} chevron",
         "saltire": "a {t} diagonal cross",
         "chief": "a {t} band across the top",
+        "bordure": "a {t} border",
+        "orle": "a {t} inner border",
+        "canton": "a {t} corner square",
+        "gyron": "a {t} wedge in the corner",
+        "pile": "a {t} wedge from the top",
+        "pall": "a {t} Y-shape",
+        "bend sinister": "a {t} diagonal band the other way",
+        "fess double": "two {t} bars across",
+        "pale double": "two {t} bars down",
     },
     # Charges whose heraldic name is already plain enough are left alone.
     "charge": {
@@ -153,11 +165,11 @@ def plain(blazon, table=None):
                                     colour(blazon.field2))
 
     if blazon.variation:
-        parts.append(t["variation"][blazon.variation].format(
-            a=colour(blazon.field), b=colour(blazon.field2)))
+        tmpl = t["variation"].get(blazon.variation, "{a} and {b}")
+        parts.append(tmpl.format(a=colour(blazon.field), b=colour(blazon.field2)))
     elif blazon.division:
-        parts.append(t["division"][blazon.division].format(
-            a=colour(blazon.field), b=colour(blazon.field2)))
+        tmpl = t["division"].get(blazon.division, "{a} and {b}")
+        parts.append(tmpl.format(a=colour(blazon.field), b=colour(blazon.field2)))
     elif getattr(blazon, "seme", None):
         word = t["charge"].get(blazon.seme, blazon.seme)
         parts.append("%s strewn with %s %s"
@@ -170,8 +182,8 @@ def plain(blazon, table=None):
     edge = t["line"].get(style) if style != "plain" else None
 
     if blazon.ordinary:
-        piece = t["ordinary"][blazon.ordinary].format(
-            t=colour(blazon.ordinary_tincture))
+        tmpl = t["ordinary"].get(blazon.ordinary, "a {t} " + blazon.ordinary)
+        piece = tmpl.format(t=colour(blazon.ordinary_tincture))
         # The edge belongs to whichever element was actually cut with it: the
         # ordinary if there is one, otherwise the division.
         if edge:

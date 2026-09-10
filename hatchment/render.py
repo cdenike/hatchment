@@ -19,9 +19,16 @@ BIT = {(0, 0): 0, (1, 0): 1, (2, 0): 2, (3, 0): 6,
 DOT_ASPECT = 4.25 / 4.0  # dot width / height in px
 
 
-def _run(cmd, stdin=None):
+def _run(cmd, stdin=None, timeout=20):
+    """Run a converter, refusing to wait on it forever.
+
+    Without a timeout a wedged rsvg-convert or ImageMagick blocks the calling
+    thread indefinitely, and in the GUI that thread is holding the flag that
+    keeps the buttons disabled -- so one stuck child process reads to the user
+    as the whole app hanging.
+    """
     return subprocess.run(cmd, input=stdin, capture_output=True,
-                          check=True).stdout
+                          check=True, timeout=timeout).stdout
 
 
 def hatch_params(cols):

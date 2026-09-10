@@ -289,20 +289,36 @@ class HatchmentWindow(Adw.ApplicationWindow):
                 rng = random.Random(seed)
                 blazon, art = generate(rng, PREVIEW_COLS, theme=theme)
                 GLib.idle_add(self.show_result, blazon, art, seed)
-            except Exception as exc:  # surface it rather than hanging on "Rolling…"
+            except BaseException as exc:  # never leave the UI stuck on "Rolling…"
                 GLib.idle_add(self.show_error, str(exc))
 
         threading.Thread(target=work, daemon=True).start()
 
     def show_result(self, blazon, art, seed):
-        self.blazon = blazon
-        self.art.set_text(art)
-        self.blazon_label.set_text(blazon.describe())
-        gloss = plain(blazon)
-        self.gloss_label.set_text('\u201c%s\u201d' % gloss if gloss else "")
-        self.seed_label.set_text("seed: %s" % seed)
-        self.seed_entry.set_text("")
-        self.set_busy(False)
+        """Put a finished roll on screen.
+
+        Everything here is wrapped, and set_busy(False) is in a finally, because
+        this runs inside a GLib idle callback: an exception raised here does not
+        propagate anywhere useful, it just abandons the rest of the function.
+        When that included re-enabling the buttons, one missing glossary entry
+        left every control disabled and the window looking hung -- which is
+        exactly what happened.
+        """
+        try:
+            self.blazon = blazon
+            self.art.set_text(art)
+            self.blazon_label.set_text(blazon.describe())
+            try:
+                gloss = plain(blazon)
+            except Exception:
+                gloss = None       # decoration; never worth failing a roll over
+            self.gloss_label.set_text("\u201c%s\u201d" % gloss if gloss else "")
+            self.seed_label.set_text("seed: %s" % seed)
+            self.seed_entry.set_text("")
+        except Exception as exc:
+            self.toast("Could not display arms: %s" % exc)
+        finally:
+            self.set_busy(False)
         return GLib.SOURCE_REMOVE
 
     def show_error(self, message):
