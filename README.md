@@ -348,9 +348,22 @@ Afterwards:
 
 ## Requirements
 
-- Python 3.9+ (standard library only)
-- `rsvg-convert` (librsvg) — rasterises the vector directly at dot resolution
-- ImageMagick (`magick`) — thresholds to 1-bit
+- Python 3.9+, standard library only
+- `rsvg-convert` (librsvg) — the one external program, ~10 MiB
+- GTK4 and libadwaita, for the window only; the command line needs neither
+
+That is the whole dependency list. Thresholding the rasteriser's output to 1-bit
+used to be a second call out to **ImageMagick** — 21.8 MiB of dependency, and a
+process spawn on every render, to compare bytes against a number. It is ~90
+lines of `zlib` and `struct` instead: parse IHDR, concatenate IDAT, inflate,
+undo the five scanline filters, threshold. Dropping it made rendering **3.7×
+faster** (27 ms → 7.3 ms per shield) and halved what has to be installed.
+
+The replacement was checked against the thing it replaced rather than assumed
+equivalent: 190 renders across every theme and all three output widths,
+byte-identical. The first attempt was *not* — an exclusive comparison inked
+0-126 where ImageMagick inks 0-127, which shifted every anti-aliased edge pixel
+by one level and changed the outline of most shields.
 
 Rendering large and downsampling is what ruins this kind of art: a one-pixel
 rule resampled to a fraction of a pixel turns grey, and thresholding grey against

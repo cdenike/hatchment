@@ -91,7 +91,3 @@ def points(p0, p1, style, samples=None, phase=0.0, scale=1.0):
         out.append((x0 + dx * t + nx * off, y0 + dy * t + ny * off))
     return out
 
-
-def path_d(pts, close=True):
-    d = "M " + " L ".join("%.2f,%.2f" % p for p in pts)
-    return d + " Z" if close else d

@@ -48,9 +48,6 @@ def is_metal(tincture):
     return tincture in METALS
 
 
-def contrasts(a, b):
-    """True when `a` on `b` satisfies the rule of tincture."""
-    return is_metal(a) != is_metal(b)
 
 
 def pick_contrasting(against, rng):
@@ -61,21 +58,8 @@ def pick_contrasting(against, rng):
 # --- Vocabulary ------------------------------------------------------------
 
 # Divisions of the field. Each is a pair of half-field polygons in a 0..100 box.
-DIVISIONS = {
-    "per pale": [[(0, 0), (50, 0), (50, 100), (0, 100)],
-                 [(50, 0), (100, 0), (100, 100), (50, 100)]],
-    "per fess": [[(0, 0), (100, 0), (100, 50), (0, 50)],
-                 [(0, 50), (100, 50), (100, 100), (0, 100)]],
-    "per bend": [[(0, 0), (100, 0), (0, 100)],
-                 [(100, 0), (100, 100), (0, 100)]],
-    "per chevron": [[(0, 100), (50, 45), (100, 100)],
-                    [(0, 0), (100, 0), (100, 100), (50, 45), (0, 100)]],
-    # Geometry for these is generated rather than listed; the entries exist so
-    # the division can be rolled and named.
-    "quarterly": [],
-    "per saltire": [],
-    "per bend sinister": [],
-}
+DIVISIONS = ("per pale", "per fess", "per bend", "per bend sinister",
+             "per chevron", "quarterly", "per saltire")
 
 # Ordinaries: the bold geometric charges. These are what actually read at low
 # resolution, so the generator leans on them heavily.
@@ -343,7 +327,7 @@ class Blazon:
 
     def _divide(self):
         rng = self.rng
-        self.division = rng.choice(list(DIVISIONS))
+        self.division = rng.choice(DIVISIONS)
         self.field2 = pick_contrasting(self.field, rng)
         # A line of partition costs nothing and changes the whole silhouette of
         # the cut, so it is worth rolling often.
