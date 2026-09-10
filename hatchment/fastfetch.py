@@ -32,10 +32,11 @@ DEFAULT_PADDING = 3
 # wrapped yet, and the cost of not finding out is one column of shield.
 SAFETY = 1
 
-# Narrower than this and the charges stop reading; wider is past the point where
-# a sidebar logo is a sidebar. The ceiling is also what the original constant
-# was, so nothing that fits today gets smaller for having been measured.
-MIN_COLS, MAX_COLS = 16, 44
+# Narrower than this and the charges stop reading. The ceiling is the size of
+# the logo Omarchy itself ships -- its about.txt is 45 columns by 26 rows -- so
+# a terminal with room lands on stock size rather than under it, and nothing
+# that fits today gets smaller for having been measured.
+MIN_COLS, MAX_COLS = 16, 45
 
 # Nothing to measure and nothing installed: 24 columns leaves an 80-column
 # terminal the ~53 the default info block wants.
@@ -95,12 +96,19 @@ def installed_cols(path):
         return None
 
 
-def measure():
+def measure(logo_path):
     """(info block width, padding), or (None, None) if fastfetch cannot say.
 
-    Padding comes from the gap between a full render and one with the logo
-    suppressed, so a config that pads differently is accounted for without this
-    having to read -- and parse the comments out of -- config.jsonc.
+    Padding is what is left of a full render once the info block and the logo
+    are accounted for, so a config that pads differently is handled without
+    reading -- and parsing the comments out of -- config.jsonc.
+
+    The logo's own width is taken from the file rather than from a second
+    render. Asking fastfetch to draw the logo alone looked like the tidier
+    answer, but `--structure ""` renders every module anyway, which made the
+    subtraction nonsense and quietly fell back to the default -- a default that
+    matched the truth on the config it was written against, so the mistake was
+    invisible until the padding changed.
     """
     info = _fastfetch("--logo", "none")
     if info is None:
@@ -108,21 +116,21 @@ def measure():
     info = visible_width(info)
 
     full = _fastfetch()
-    logo = _fastfetch("--structure", "")   # logo alone, no modules
+    logo = installed_cols(logo_path)
     if full is None or logo is None:
         return info, DEFAULT_PADDING
 
-    padding = visible_width(full) - info - visible_width(logo)
-    # A negative or absurd gap means one of the three renders measured something
-    # this does not understand; the shipped padding is a better answer than a
-    # width computed from it.
+    padding = visible_width(full) - info - logo
+    # Out of range means the widest line was not one with both a logo and info
+    # on it -- art taller than the info block, most likely -- so the shipped
+    # padding is a better answer than a width derived from it.
     return info, padding if 0 <= padding <= 16 else DEFAULT_PADDING
 
 
 def fit(logo_path):
     """Logo width to install, fitted to the terminal it will be printed in."""
     cols = terminal_cols()
-    info, padding = measure()
+    info, padding = measure(logo_path)
 
     if cols is None or info is None:
         kept = installed_cols(logo_path)
