@@ -1,4 +1,7 @@
 __pycache__/
 *.pyc
-*.svg
-*.png
+
+# Generated exports land in the working directory; the icon under data/ is
+# source and must not be swept up with them.
+/*.svg
+/*.png

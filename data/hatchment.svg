@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Hatchment</title>
+  <!--
+    A shield the generator could have produced: the same heater outline it
+    draws, divided per bend, charged with a mullet, in the same flat two tones.
+    Blazoned, it would read "Or, a bend sable, a mullet sable".
+
+    Original geometry, built from primitives. The heater shield, the bend and
+    the five-pointed mullet are centuries-old public domain devices; nothing
+    here is traced from anyone's mark.
+
+    Three elements is the whole budget, because this has to hold together at 32
+    pixels in an app menu: one hard diagonal, one convex charge, and a border
+    thick enough to carry the silhouette once the fill detail stops resolving.
+  -->
+  <defs>
+    <!--
+      The generator's own shield path. userSpaceOnUse means it resolves in the
+      coordinate system of whatever references it, which is inside the scaled
+      group below, so the path is written in the same 100x115 box draw.py uses
+      rather than in canvas pixels.
+    -->
+    <clipPath id="shield" clipPathUnits="userSpaceOnUse">
+      <path d="M 3,3 L 97,3 L 97,52 C 97,86 74,105 50,112 C 26,105 3,86 3,52 Z"/>
+    </clipPath>
+  </defs>
+
+  <g transform="translate(64,34) scale(3.86)">
+    <!-- Field: or. -->
+    <path d="M 3,3 L 97,3 L 97,52 C 97,86 74,105 50,112 C 26,105 3,86 3,52 Z"
+          fill="#f4c77b"/>
+
+    <!-- A bend sable, oversized so the clip decides where it ends. -->
+    <g clip-path="url(#shield)">
+      <path d="M -10.0,20.0 L 110.0,82.0 L 101.3,98.9 L -18.7,36.9 Z" fill="#1d2b3a"/>
+    </g>
+
+    <!-- A mullet in the chief-dexter quarter, clear of the bend. -->
+    <path fill="#1d2b3a"
+          d="M 66.0,11.0 L 69.9,21.6 L 81.2,22.1 L 72.4,29.1 L 75.4,39.9 L 66.0,33.7 L 56.6,39.9 L 59.6,29.1 L 50.8,22.1 L 62.1,21.6 Z"/>
+
+    <!-- Border last, so nothing paints over the silhouette. -->
+    <path d="M 3,3 L 97,3 L 97,52 C 97,86 74,105 50,112 C 26,105 3,86 3,52 Z"
+          fill="none" stroke="#1d2b3a" stroke-width="5" stroke-linejoin="round"/>
+  </g>
+</svg>
