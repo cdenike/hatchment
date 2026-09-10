@@ -16,7 +16,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import fastfetch, menuicon, screensaver, theme
 from .gloss import plain
@@ -45,6 +45,17 @@ def _tiling_wm():
 # but each install target re-renders at its own width rather than scaling this.
 PREVIEW_COLS = 30
 
+# The history thumbnails. Seven columns is four rows of braille -- enough for
+# the shield's outline and whether something is on it, which is all a row of a
+# list has to carry. Rendering them is another rsvg call per roll, so it happens
+# on the worker thread with the preview rather than while a menu is opening.
+THUMB_COLS = 7
+
+# How many rolls the menu remembers. Long enough to get back to the one you
+# liked three rolls ago, short enough that the popover is a list rather than a
+# scrollback.
+HISTORY_MAX = 24
+
 # Braille only looks solid in a font whose dot glyphs are drawn to tile edge to
 # edge; a generic monospace letter-spaces them and the fills read as a loose
 # grid of dots instead of a filled area. Nerd Fonts draw them to tile, and
@@ -60,6 +71,13 @@ BASE_CSS = """
 .blazon { font-size: 15px; font-weight: 600; }
 .gloss { font-size: 12px; opacity: 0.72; font-style: italic; }
 .seed { font-family: monospace; opacity: 0.6; font-size: 11px; }
+.thumb {
+  font-family: "JetBrainsMono Nerd Font", "JetBrainsMono NF", monospace;
+  font-size: 11px;
+  line-height: 1.0;
+}
+.history-blazon { font-size: 13px; }
+.history-empty { opacity: 0.6; padding: 12px; }
 """
 
 
@@ -158,6 +176,7 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.toasts = Adw.ToastOverlay()
         view = Adw.ToolbarView()
         header = Adw.HeaderBar()
+        header.pack_start(self._build_history_button())
         if _tiling_wm():
             header.set_show_end_title_buttons(False)
             header.set_show_start_title_buttons(False)
@@ -280,6 +299,123 @@ class HatchmentWindow(Adw.ApplicationWindow):
 
         self.roll(None)
 
+    # -- history --
+
+    def _build_history_button(self):
+        """The Recent menu: every roll this session, newest first.
+
+        A roll is cheap to look at and expensive to reproduce -- you cannot get
+        back to arms you liked unless you noted the seed, and nobody notes the
+        seed before they know they liked it. So the window keeps them.
+        """
+        self.history = []
+        self.history_list = Gtk.ListBox()
+        self.history_list.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.history_list.connect("row-activated", self.on_history_row)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_min_content_width(360)
+        scroller.set_max_content_height(400)
+        scroller.set_propagate_natural_height(True)
+        # Without this the scroller offers its minimum width, and the row's
+        # first child -- the thumbnail -- is what gets squeezed out of it.
+        scroller.set_propagate_natural_width(True)
+        scroller.set_child(self.history_list)
+
+        self.history_pop = Gtk.Popover()
+        self.history_pop.set_child(scroller)
+
+        button = Gtk.MenuButton(label="Recent")
+        button.set_tooltip_text("Arms rolled this session")
+        button.set_popover(self.history_pop)
+        self.history_btn = button
+        self._rebuild_history()
+        return button
+
+    def _remember(self, blazon, art, seed, thumb, text, gloss):
+        self.history.insert(0, {"blazon": blazon, "art": art, "seed": seed,
+                                "thumb": thumb, "text": text, "gloss": gloss})
+        del self.history[HISTORY_MAX:]
+        self._rebuild_history()
+
+    def _rebuild_history(self):
+        """Rebuild the whole list rather than diffing it.
+
+        It is at most HISTORY_MAX rows and only changes once per roll, so the
+        bookkeeping a diff would need costs more than the rebuild it saves.
+        """
+        while True:
+            child = self.history_list.get_first_child()
+            if child is None:
+                break
+            self.history_list.remove(child)
+
+        self.history_btn.set_sensitive(bool(self.history))
+        if not self.history:
+            label = Gtk.Label(label="Nothing rolled yet")
+            label.add_css_class("history-empty")
+            row = Gtk.ListBoxRow()
+            row.set_activatable(False)
+            row.set_child(label)
+            self.history_list.append(row)
+            return
+
+        for entry in self.history:
+            box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            box.set_margin_top(6)
+            box.set_margin_bottom(6)
+            box.set_margin_start(8)
+            box.set_margin_end(8)
+
+            thumb = Gtk.Label(label=entry["thumb"].rstrip("\n"))
+            thumb.add_css_class("thumb")
+            thumb.set_valign(Gtk.Align.CENTER)
+            # Reserve the shield's full width, so a long blazon beside it
+            # cannot push the picture down to a sliver.
+            thumb.set_width_chars(THUMB_COLS)
+            thumb.set_xalign(0)
+            box.append(thumb)
+
+            # The blazon alone. The seed is what reproduces arms, not what
+            # identifies them to a reader, and a row that has to be read at a
+            # glance should carry the name rather than the serial number -- the
+            # seed is still on the window once a row is picked.
+            blazon_label = Gtk.Label(label=entry["text"])
+            blazon_label.add_css_class("history-blazon")
+            blazon_label.set_xalign(0)
+            blazon_label.set_hexpand(True)
+            blazon_label.set_valign(Gtk.Align.CENTER)
+            blazon_label.set_wrap(True)
+            blazon_label.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+            blazon_label.set_lines(2)
+            blazon_label.set_ellipsize(Pango.EllipsizeMode.END)
+            blazon_label.set_max_width_chars(32)
+            box.append(blazon_label)
+
+            row = Gtk.ListBoxRow()
+            row.set_child(box)
+            self.history_list.append(row)
+
+    def on_history_row(self, _list, row):
+        """Bring a past roll back as the current arms.
+
+        The art is the one rendered when it was rolled, not a fresh render:
+        re-deriving it would shell out again for a picture already in hand, and
+        the gate can re-roll, so a regenerated shield might not even match.
+        """
+        index = row.get_index()
+        if not (0 <= index < len(self.history)):
+            return
+        entry = self.history[index]
+        self.history_pop.popdown()
+        self.blazon = entry["blazon"]
+        self.art.set_text(entry["art"])
+        self.blazon_label.set_text(entry["text"])
+        self.gloss_label.set_text(entry["gloss"])
+        self.seed_label.set_text("seed: %s" % entry["seed"])
+        self.seed_entry.set_text("")
+
     # -- helpers --
 
     def toast(self, text):
@@ -311,13 +447,17 @@ class HatchmentWindow(Adw.ApplicationWindow):
             try:
                 rng = random.Random(seed)
                 blazon, art = generate(rng, PREVIEW_COLS, theme=theme)
-                GLib.idle_add(self.show_result, blazon, art, seed)
+                # Rendered here rather than when the menu opens: it is another
+                # rsvg call, and a popover that shells out while it animates
+                # stutters.
+                thumb = draw_at(blazon, THUMB_COLS)
+                GLib.idle_add(self.show_result, blazon, art, seed, thumb)
             except BaseException as exc:  # never leave the UI stuck on "Rolling…"
                 GLib.idle_add(self.show_error, str(exc))
 
         threading.Thread(target=work, daemon=True).start()
 
-    def show_result(self, blazon, art, seed):
+    def show_result(self, blazon, art, seed, thumb=""):
         """Put a finished roll on screen.
 
         Everything here is wrapped, and set_busy(False) is in a finally, because
@@ -338,6 +478,8 @@ class HatchmentWindow(Adw.ApplicationWindow):
             self.gloss_label.set_text("\u201c%s\u201d" % gloss if gloss else "")
             self.seed_label.set_text("seed: %s" % seed)
             self.seed_entry.set_text("")
+            self._remember(blazon, art, seed, thumb, blazon.describe(),
+                           self.gloss_label.get_text())
         except Exception as exc:
             self.toast("Could not display arms: %s" % exc)
         finally:
