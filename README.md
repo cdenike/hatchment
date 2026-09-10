@@ -328,6 +328,21 @@ distinction the gate exists to catch.
 
 ## Install
 
+### Arch, as a real package
+
+```bash
+git clone https://github.com/cdenike/hatchment.git
+cd hatchment/packaging/aur
+makepkg -si
+```
+
+This builds and installs a proper pacman package — `pacman -Qi hatchment` will
+find it, and `pacman -R hatchment` removes it cleanly. The AUR is only an index
+that hosts PKGBUILDs; the PKGBUILD here is the same one, so nothing is lost by
+fetching it from this repository instead.
+
+### Anywhere else, or without root
+
 ```bash
 git clone https://github.com/cdenike/hatchment.git
 cd hatchment
