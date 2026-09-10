@@ -737,7 +737,8 @@ def _seme_shapes(name, rng, w, h):
     return "".join(out)
 
 
-def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"):
+def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff",
+           outline=3.2):
     """Produce the SVG string for a Blazon.
 
     `ground` paints behind the shield. It exists for the braille transcoder,
@@ -857,6 +858,6 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
 
     out.append("</g>")
     # The shield outline last, so nothing paints over it.
-    out.append(f'<path d="{SHIELD}" fill="none" stroke="#000" stroke-width="3.2"/>')
+    out.append(f'<path d="{SHIELD}" fill="none" stroke="#000" stroke-width="{outline}"/>')
     out.append("</svg>")
     return "\n".join(out)

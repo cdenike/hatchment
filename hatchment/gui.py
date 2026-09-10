@@ -45,11 +45,14 @@ def _tiling_wm():
 # but each install target re-renders at its own width rather than scaling this.
 PREVIEW_COLS = 30
 
-# The history thumbnails. Seven columns is four rows of braille -- enough for
-# the shield's outline and whether something is on it, which is all a row of a
-# list has to carry. Rendering them is another rsvg call per roll, so it happens
-# on the worker thread with the preview rather than while a menu is opening.
-THUMB_COLS = 7
+# The history thumbnails. Twelve columns is seven rows of braille: enough for
+# the silhouette, the division or ordinary across it, and roughly what is on it.
+# Seven columns was tried first and is genuinely too small -- 14 dots across
+# cannot hold an interior, and the shield's own outline falls below one dot and
+# vanishes, so light arms lost their edge and dark ones became a blot.
+# Rendering them is another rsvg call per roll, so it happens on the worker
+# thread with the preview rather than while a menu is opening.
+THUMB_COLS = 12
 
 # How many rolls the menu remembers. Long enough to get back to the one you
 # liked three rolls ago, short enough that the popover is a list rather than a
@@ -73,7 +76,7 @@ BASE_CSS = """
 .seed { font-family: monospace; opacity: 0.6; font-size: 11px; }
 .thumb {
   font-family: "JetBrainsMono Nerd Font", "JetBrainsMono NF", monospace;
-  font-size: 11px;
+  font-size: 9px;
   line-height: 1.0;
 }
 .history-blazon { font-size: 13px; }

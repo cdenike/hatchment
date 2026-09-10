@@ -53,7 +53,13 @@ def draw_at(blazon, cols):
     are what a 24-column shield can actually carry. The hatching survives in
     the SVG export, where there are pixels to spare for it.
     """
-    return to_braille(render(blazon, solid=True), cols)
+    # The shield outline is 3.2 units on a 100-unit box, which is 1.5 dots wide
+    # at 24 columns and 0.45 at 7 -- and a line thinner than a dot thresholds
+    # away, taking the silhouette with it. Widen it for small targets so the
+    # shield always has an edge: below 16 columns this is what is left of the
+    # drawing. Above that the constant is already wider and nothing changes.
+    outline = max(3.2, 50.0 / cols)
+    return to_braille(render(blazon, solid=True, outline=outline), cols)
 
 
 def complexity_for(cols):
