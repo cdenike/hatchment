@@ -329,7 +329,7 @@ distinction the gate exists to catch.
 ## Install
 
 ```bash
-git clone https://github.com/<you>/hatchment.git
+git clone https://github.com/cdenike/hatchment.git
 cd hatchment
 ./install.sh
 ```
