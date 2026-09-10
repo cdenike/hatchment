@@ -286,6 +286,123 @@ def _charge_path(name, cx, cy, r):
                 f'<rect x="{cx - r * 0.62}" y="{cy + r * 0.52}" '
                 f'width="{r * 1.24}" height="{r * 0.22}"/>')
 
+    if name == "garb":
+        # A garb is a wheatsheaf: stalks fanned out, ears at the top, bound at
+        # the waist. The band is what stops it reading as a bush.
+        return (f'<path d="'
+                f'M {cx - r * 0.16} {cy - r * 0.10} '
+                f'C {cx - r * 0.70} {cy - r * 0.34} {cx - r * 0.74} {cy - r * 0.74} {cx - r * 0.52} {cy - r * 0.98} '
+                f'L {cx - r * 0.22} {cy - r * 0.52} '
+                f'L {cx - r * 0.20} {cy - r * 0.96} '
+                f'L {cx + r * 0.20} {cy - r * 0.96} '
+                f'L {cx + r * 0.22} {cy - r * 0.52} '
+                f'L {cx + r * 0.52} {cy - r * 0.98} '
+                f'C {cx + r * 0.74} {cy - r * 0.74} {cx + r * 0.70} {cy - r * 0.34} {cx + r * 0.16} {cy - r * 0.10} Z"/>'
+                f'<path d="'
+                f'M {cx - r * 0.22} {cy + r * 0.02} '
+                f'C {cx - r * 0.80} {cy + r * 0.30} {cx - r * 0.66} {cy + r * 0.86} {cx - r * 0.30} {cy + r * 0.98} '
+                f'L {cx + r * 0.30} {cy + r * 0.98} '
+                f'C {cx + r * 0.66} {cy + r * 0.86} {cx + r * 0.80} {cy + r * 0.30} {cx + r * 0.22} {cy + r * 0.02} Z"/>'
+                f'<rect x="{cx - r * 0.56}" y="{cy - r * 0.14}" '
+                f'width="{r * 1.12}" height="{r * 0.24}"/>')
+
+    if name == "tree":
+        return (f'<circle cx="{cx}" cy="{cy - r * 0.34}" r="{r * 0.62}"/>'
+                f'<circle cx="{cx - r * 0.48}" cy="{cy - r * 0.04}" r="{r * 0.38}"/>'
+                f'<circle cx="{cx + r * 0.48}" cy="{cy - r * 0.04}" r="{r * 0.38}"/>'
+                f'<rect x="{cx - r * 0.13}" y="{cy + r * 0.14}" '
+                f'width="{r * 0.26}" height="{r * 0.82}"/>'
+                f'<rect x="{cx - r * 0.44}" y="{cy + r * 0.84}" '
+                f'width="{r * 0.88}" height="{r * 0.16}"/>')
+
+    if name == "rose":
+        # A heraldic rose is flat and five-fold, seen face on -- not a garden
+        # rose in profile.
+        import math
+        out = []
+        for i in range(5):
+            a = -math.pi / 2 + i * 2 * math.pi / 5
+            out.append('<circle cx="%.2f" cy="%.2f" r="%.2f"/>'
+                       % (cx + r * 0.58 * math.cos(a),
+                          cy + r * 0.58 * math.sin(a), r * 0.44))
+        out.append(f'<circle cx="{cx}" cy="{cy}" r="{r * 0.30}" fill="#fff"/>')
+        out.append(f'<circle cx="{cx}" cy="{cy}" r="{r * 0.15}"/>')
+        return "".join(out)
+
+    if name == "trefoil":
+        return (f'<circle cx="{cx}" cy="{cy - r * 0.46}" r="{r * 0.34}"/>'
+                f'<circle cx="{cx - r * 0.42}" cy="{cy + r * 0.06}" r="{r * 0.34}"/>'
+                f'<circle cx="{cx + r * 0.42}" cy="{cy + r * 0.06}" r="{r * 0.34}"/>'
+                f'<rect x="{cx - r * 0.09}" y="{cy + r * 0.20}" '
+                f'width="{r * 0.18}" height="{r * 0.78}"/>')
+
+    if name == "attires":
+        # Antlers alone, borne as a charge in their own right.
+        def rack(sign):
+            sx = sign
+            return (f'<path d="'
+                    f'M {cx + sx * r * 0.10} {cy + r * 0.94} '
+                    f'L {cx + sx * r * 0.22} {cy + r * 0.20} '
+                    f'L {cx + sx * r * 0.60} {cy - r * 0.06} '
+                    f'L {cx + sx * r * 0.30} {cy - r * 0.04} '
+                    f'L {cx + sx * r * 0.42} {cy - r * 0.48} '
+                    f'L {cx + sx * r * 0.20} {cy - r * 0.28} '
+                    f'L {cx + sx * r * 0.24} {cy - r * 0.84} '
+                    f'L {cx + sx * r * 0.02} {cy - r * 0.34} '
+                    f'L {cx + sx * r * 0.01} {cy + r * 0.20} Z"/>')
+        return rack(-1) + rack(1)
+
+    if name == "stag":
+        # Body of a standing beast, with a rack on the head: the antlers are
+        # the whole difference between this and the horse.
+        return (f'<path d="'
+                f'M {cx - r * 0.92} {cy - r * 0.30} '
+                f'L {cx - r * 0.62} {cy - r * 0.44} '
+                f'L {cx - r * 0.44} {cy - r * 0.06} '
+                f'L {cx + r * 0.46} {cy - r * 0.10} '
+                f'L {cx + r * 0.72} {cy - r * 0.34} '
+                f'L {cx + r * 0.86} {cy + r * 0.02} '
+                f'L {cx + r * 0.64} {cy + r * 0.30} '
+                f'L {cx + r * 0.70} {cy + r * 0.96} '
+                f'L {cx + r * 0.44} {cy + r * 0.96} '
+                f'L {cx + r * 0.34} {cy + r * 0.38} '
+                f'L {cx - r * 0.26} {cy + r * 0.40} '
+                f'L {cx - r * 0.36} {cy + r * 0.96} '
+                f'L {cx - r * 0.62} {cy + r * 0.96} '
+                f'L {cx - r * 0.54} {cy + r * 0.28} '
+                f'L {cx - r * 0.78} {cy + r * 0.06} Z"/>'
+                f'<path d="M {cx - r * 0.80} {cy - r * 0.40} '
+                f'L {cx - r * 0.96} {cy - r * 0.86} '
+                f'L {cx - r * 0.74} {cy - r * 0.62} '
+                f'L {cx - r * 0.66} {cy - r * 0.92} '
+                f'L {cx - r * 0.58} {cy - r * 0.54} '
+                f'L {cx - r * 0.42} {cy - r * 0.80} '
+                f'L {cx - r * 0.50} {cy - r * 0.40} Z"/>')
+
+    if name == "bee":
+        return (f'<ellipse cx="{cx}" cy="{cy + r * 0.22}" '
+                f'rx="{r * 0.40}" ry="{r * 0.62}"/>'
+                f'<rect x="{cx - r * 0.42}" y="{cy + r * 0.06}" '
+                f'width="{r * 0.84}" height="{r * 0.13}" fill="#fff"/>'
+                f'<rect x="{cx - r * 0.38}" y="{cy + r * 0.44}" '
+                f'width="{r * 0.76}" height="{r * 0.13}" fill="#fff"/>'
+                f'<circle cx="{cx}" cy="{cy - r * 0.52}" r="{r * 0.26}"/>'
+                f'<ellipse cx="{cx - r * 0.62}" cy="{cy - r * 0.16}" '
+                f'rx="{r * 0.36}" ry="{r * 0.20}" transform="rotate(-28 {cx - r * 0.62} {cy - r * 0.16})"/>'
+                f'<ellipse cx="{cx + r * 0.62}" cy="{cy - r * 0.16}" '
+                f'rx="{r * 0.36}" ry="{r * 0.20}" transform="rotate(28 {cx + r * 0.62} {cy - r * 0.16})"/>')
+
+    if name == "fish":
+        return (f'<path d="'
+                f'M {cx + r * 0.92} {cy} '
+                f'C {cx + r * 0.30} {cy - r * 0.66} {cx - r * 0.30} {cy - r * 0.66} {cx - r * 0.62} {cy} '
+                f'C {cx - r * 0.30} {cy + r * 0.66} {cx + r * 0.30} {cy + r * 0.66} {cx + r * 0.92} {cy} Z"/>'
+                f'<path d="M {cx - r * 0.58} {cy} '
+                f'L {cx - r * 0.98} {cy - r * 0.42} '
+                f'L {cx - r * 0.98} {cy + r * 0.42} Z"/>'
+                f'<circle cx="{cx + r * 0.52}" cy="{cy - r * 0.10}" '
+                f'r="{r * 0.10}" fill="#fff"/>')
+
     if name == "banner":
         # A staff with a flag whose fly ripples. The ripple is the point: it is
         # the one charge here that is supposed to look like cloth.

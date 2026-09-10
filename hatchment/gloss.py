@@ -77,6 +77,14 @@ EN = {
         "lion": "rearing lion",
         "horse": "rearing horse",
         "eagle": "eagle with spread wings",
+        "garb": "wheatsheaf",
+        "tree": "tree",
+        "rose": "rose",
+        "trefoil": "clover leaf",
+        "attires": "pair of antlers",
+        "stag": "stag",
+        "bee": "bee",
+        "fish": "fish",
     },
     # Lines of partition, as the shape of the edge rather than its name.
     "line": {
@@ -89,7 +97,17 @@ EN = {
         "nebuly": "a cloud-shaped edge",
     },
     "plural": {"sword": "swords", "key": "keys", "cross": "crosses",
-               "fleur-de-lis": "fleurs-de-lis"},
+               "fleur-de-lis": "fleurs-de-lis", "fish": "fish",
+               "wheatsheaf": "wheatsheaves",
+               "pair of antlers": "pairs of antlers",
+               # Phrases pluralise on their head noun, not their tail: append
+               # an "s" to "eagle with spread wings" and you get "wingss".
+               "eagle with spread wings": "eagles with spread wings",
+               "rearing lion": "rearing lions",
+               "rearing horse": "rearing horses",
+               "crescent moon": "crescent moons",
+               "crescent moon facing right": "crescent moons facing right",
+               "wavy-rayed star": "wavy-rayed stars"},
     "numbers": {2: "two", 3: "three", 4: "four", 5: "five"},
     "join": ", with ",
     "and": " and ",

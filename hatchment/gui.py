@@ -198,8 +198,10 @@ class HatchmentWindow(Adw.ApplicationWindow):
         theme_label = Gtk.Label(label="Theme")
         theme_label.set_xalign(0)
         theme_row.append(theme_label)
+        # Alphabetical after the first entry, which is the "no filter" option
+        # and belongs at the top rather than sorted in among the filters.
         self.theme_drop = Gtk.DropDown.new_from_strings(
-            ["Both", "Medieval", "Cosmic", "Fractal", "Geometric"])
+            ["All", "Cosmic", "Fractal", "Geometric", "Medieval", "Natural"])
         self.theme_drop.set_hexpand(True)
         # Re-roll on change so the choice shows itself immediately rather than
         # waiting for the next press of Randomise.
@@ -279,8 +281,8 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.set_busy(True)
         seed = seed or os.urandom(8).hex()
 
-        theme = (None, "medieval", "cosmic", "fractal",
-                 "geometric")[self.theme_drop.get_selected()]
+        theme = (None, "cosmic", "fractal", "geometric", "medieval",
+                 "natural")[self.theme_drop.get_selected()]
 
         def work():
             try:

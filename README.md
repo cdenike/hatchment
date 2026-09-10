@@ -89,8 +89,11 @@ white, so there is nothing to lose.
 ### Themes
 
 ```bash
+hatchment --theme cosmic      # the themes are alphabetical throughout
+hatchment --theme fractal
+hatchment --theme geometric
 hatchment --theme medieval
-hatchment --theme cosmic
+hatchment --theme natural
 ```
 
 Themes filter the charge table; they do not add a separate vocabulary, because
@@ -100,6 +103,8 @@ heraldry already had both registers.
   billet, banner, and rearing lion and horse
 - **Cosmic** — sun in splendour, estoile, comet, increscent, orb, mullet,
   crescent, annulet, eagle
+- **Natural** — garb (a wheatsheaf), tree, rose, trefoil, attires (a pair of
+  antlers borne without the stag), stag, bee, fish, horse, lion, eagle
 - **Fractal** — Sierpinski gasket, Sierpinski carpet, Vicsek fractal, Koch
   snowflake, mandala, nested polygons, H-tree, Cantor bars, flower of life,
   recursive circles

@@ -124,9 +124,21 @@ CHARGES = {
     "portcullis": {"complexity": 3, "themes": {"medieval"}},
     "chalice": {"complexity": 3, "themes": {"medieval"}},
     "banner": {"complexity": 3, "themes": {"medieval"}},
-    "lion": {"complexity": 4, "themes": {"medieval"}},
-    "horse": {"complexity": 4, "themes": {"medieval"}},
-    "eagle": {"complexity": 4, "themes": {"medieval", "cosmic"}},
+
+    # Natural. Heraldry's own countryside: the garb is a wheatsheaf, the
+    # attires a pair of antlers borne without the stag, the rose flat and
+    # five-fold rather than a garden rose in profile.
+    "garb": {"complexity": 3, "themes": {"natural", "medieval"}},
+    "tree": {"complexity": 3, "themes": {"natural"}},
+    "rose": {"complexity": 3, "themes": {"natural", "medieval"}},
+    "trefoil": {"complexity": 2, "themes": {"natural"}},
+    "attires": {"complexity": 3, "themes": {"natural", "medieval"}},
+    "stag": {"complexity": 4, "themes": {"natural"}},
+    "bee": {"complexity": 4, "themes": {"natural"}},
+    "fish": {"complexity": 3, "themes": {"natural"}},
+    "lion": {"complexity": 4, "themes": {"medieval", "natural"}},
+    "horse": {"complexity": 4, "themes": {"medieval", "natural"}},
+    "eagle": {"complexity": 4, "themes": {"medieval", "cosmic", "natural"}},
 
     # Cosmic.
     "mullet": {"complexity": 1, "themes": {"cosmic", "medieval"}},
@@ -140,7 +152,11 @@ CHARGES = {
 
 # The last two are not heraldry and do not pretend to be: they treat the shield
 # as a frame for a pattern rather than as arms.
-THEMES = ("medieval", "cosmic", "fractal", "geometric")
+THEMES = ("cosmic", "fractal", "geometric", "medieval", "natural")
+
+# A few charges are grammatically plural already, so the singular article has to
+# be attached to something else: a stag has attires, never "an attires".
+BLAZON_NAME = {"attires": "pair of attires"}
 
 
 class Blazon:
@@ -364,8 +380,9 @@ class Blazon:
 
         if self.charge:
             if self.charge_count == 1:
-                article = "an" if self.charge[0] in "aeiou" else "a"
-                parts.append("%s %s %s" % (article, self.charge,
+                word = BLAZON_NAME.get(self.charge, self.charge)
+                article = "an" if word[0] in "aeiou" else "a"
+                parts.append("%s %s %s" % (article, word,
                                            self.charge_tincture))
             else:
                 # Blazon spells its numbers; "3 mullets" is a stock list, not
@@ -377,8 +394,11 @@ class Blazon:
                                            self.charge_tincture))
         return ", ".join(parts)
 
-    @staticmethod
-    def _plural(charge):
-        if charge == "fleur-de-lis":
-            return "fleurs-de-lis"
-        return charge + "s"
+    # Charges that do not take a plain "s". "attires" is already plural, so it
+    # is its own plural too.
+    PLURALS = {"fleur-de-lis": "fleurs-de-lis", "fish": "fish",
+               "attires": "attires", "sun in splendour": "suns in splendour"}
+
+    @classmethod
+    def _plural(cls, charge):
+        return cls.PLURALS.get(charge, charge + "s")

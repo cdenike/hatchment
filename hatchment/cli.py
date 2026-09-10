@@ -105,7 +105,8 @@ def main(argv=None):
     p.add_argument("--simple", action="store_true",
                    help="restrict to the simplest charges")
     p.add_argument("--theme",
-                   choices=("medieval", "cosmic", "fractal", "geometric"),
+                   choices=("cosmic", "fractal", "geometric", "medieval",
+                            "natural"),
                    help="draw charges from one register only "
                         "(default: both)")
     p.add_argument("--fastfetch", action="store_true",
