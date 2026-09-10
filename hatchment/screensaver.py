@@ -21,6 +21,7 @@ import json
 import subprocess
 
 from .render import cols_for_rows, fit_cols
+from .terminal import cell_ratio
 
 # omarchy-launch-screensaver passes --font-size=18 to ghostty and font_size 18
 # to kitty, and hands alacritty and foot screensaver configs that both set 18.
@@ -32,12 +33,18 @@ FONT_PT = 18
 # both, so this times the scale converts the font size to device pixels.
 PX_PER_PT = 96.0 / 72.0
 
-# Cell size as a fraction of the em. Monospace faces differ -- the ones omarchy
-# ships sit between roughly 1.2 and 1.35 line height -- so the tall end is used
-# rather than an average: overestimating cell height undercounts rows, which
-# errs towards art that is too small, and small is the failure that still works.
+# Cell height as a fraction of the em. Monospace faces differ -- the ones
+# omarchy ships sit between roughly 1.2 and 1.35 line height -- so the tall end
+# is used rather than an average: overestimating cell height undercounts rows,
+# which errs towards art that is too small, and small is the failure that still
+# works. Rows are what the fit turns on, so this is the estimate that matters.
 LINE_HEIGHT = 1.32
-CELL_WIDTH = 0.60
+
+# Cell width comes from the measured shape of the user's own cell where the
+# terminal will report it, since a cell's proportions are a property of their
+# font and not of this program's opinion. The fallback is the ratio the old
+# pair of constants implied, 0.60 / 1.32.
+FALLBACK_CELL_RATIO = 0.60 / 1.32
 
 # How much of the screen the shield should fill. Height is the binding
 # constraint on every ordinary aspect ratio; the width limit only bites on a
@@ -63,8 +70,9 @@ def cell_grid(width, height, scale):
     is how hyprctl reports them: the font is laid out at the scaled size, so the
     grid is a function of the raw pixels and the scale together.
     """
-    em = FONT_PT * PX_PER_PT * scale
-    return (int(width / (em * CELL_WIDTH)), int(height / (em * LINE_HEIGHT)))
+    cell_h = FONT_PT * PX_PER_PT * scale * LINE_HEIGHT
+    cell_w = cell_h * cell_ratio(FALLBACK_CELL_RATIO)
+    return (int(width / cell_w), int(height / cell_h))
 
 
 def cols_for_grid(cols, rows):

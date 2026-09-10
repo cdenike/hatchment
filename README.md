@@ -334,6 +334,22 @@ likely to run on. Art that is a little small is a modest shield on a wide
 screen; art that is taller than the terminal is clipped, and ttfx then has
 nothing left to centre.
 
+### Cell shape
+
+Braille packs dots 2 across and 4 down into a character cell, so how tall the
+art comes out for a given width depends on the cell's proportions — which belong
+to your font, at your size, on your display. Terminals that fill in the pixel
+fields of `TIOCGWINSZ` are asked directly, which is every terminal Omarchy
+ships; nothing is sent to the terminal and nothing is read back, so a terminal
+without the feature costs no round-trip and simply falls back to cells of about
+8.5x16px. Only the ratio is used, never the absolute size, because the ratio is
+what survives display scaling — a window rendered at 2x reports both dimensions
+doubled and divides back to the same shape.
+
+On the machine this was written on the real cell is 16x31, a dot ratio of
+1.0323 against the fallback's 1.0625: about a 3% error in the shield's height,
+and a shape the program has no business assuming on anyone else's behalf.
+
 New arms every login, if you want them — add to your shell profile:
 
 ```bash

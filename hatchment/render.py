@@ -14,17 +14,31 @@ work the standard library already does -- 21 MiB of dependency and a process
 spawn per render to compare bytes against a number.
 """
 
-import collections
 import struct
 import subprocess
 import zlib
+
+from .terminal import cell_ratio
 
 # Braille dot numbering is historical, not raster order: dots 1-6 came first and
 # 7-8 were bolted underneath, so the bottom row is bits 6 and 7.
 BIT = {(0, 0): 0, (1, 0): 1, (2, 0): 2, (3, 0): 6,
        (0, 1): 3, (1, 1): 4, (2, 1): 5, (3, 1): 7}
 
-DOT_ASPECT = 4.25 / 4.0  # dot width / height in px
+# Fallback dot width / height, for a terminal that will not say: cells about
+# 8.5x16px, which is a common shape but only ever a guess about someone else's
+# font. measured_dot_aspect() prefers the real thing.
+DOT_ASPECT = 4.25 / 4.0
+
+
+def measured_dot_aspect():
+    """Braille dot width / height on this terminal, or the fallback.
+
+    A cell holds 2 dots across and 4 down, so a dot is half a cell wide and a
+    quarter of one tall, and the dot ratio is twice the cell ratio.
+    """
+    ratio = cell_ratio()
+    return 2 * ratio if ratio else DOT_ASPECT
 
 PNG_SIG = b"\x89PNG\r\n\x1a\n"
 
@@ -167,16 +181,31 @@ def encode(grid):
     return "\n".join(rows)
 
 
-class Fit(collections.namedtuple("Fit", "cols rows why")):
+class Fit:
     """A chosen art size, and the reason it came out that size.
 
     Carried around together because every caller that picks a size also wants
     to say why: a width that arrives without its reasoning is indistinguishable
     from a magic number, which is what this whole mechanism replaced.
+
+    Deliberately not a namedtuple. A tuple spreads itself across %-formatting,
+    so `"...(%s)" % size` raises TypeError rather than printing the size -- and
+    a one-line status message is the entire point of this class, so the obvious
+    way to use it must not be the broken one.
     """
+
+    __slots__ = ("cols", "rows", "why")
+
+    def __init__(self, cols, rows, why):
+        self.cols = cols
+        self.rows = rows
+        self.why = why
 
     def __str__(self):
         return "%d cols x %d lines, %s" % (self.cols, self.rows, self.why)
+
+    def __repr__(self):
+        return "Fit(cols=%d, rows=%d, why=%r)" % (self.cols, self.rows, self.why)
 
 
 def fit_cols(cols, why):
@@ -184,12 +213,13 @@ def fit_cols(cols, why):
     return Fit(cols, rows_for_cols(cols), why)
 
 
-def rows_for_cols(cols, aspect=100.0 / 115.0):
+def rows_for_cols(cols, aspect=100.0 / 115.0, dot_aspect=None):
     """Height in character cells that `cols` of art will occupy."""
-    return max(1, round(cols * 2 * DOT_ASPECT / aspect / 4))
+    dot_aspect = measured_dot_aspect() if dot_aspect is None else dot_aspect
+    return max(1, round(cols * 2 * dot_aspect / aspect / 4))
 
 
-def cols_for_rows(rows, aspect=100.0 / 115.0):
+def cols_for_rows(rows, aspect=100.0 / 115.0, dot_aspect=None):
     """Widest art that still fits in `rows` character cells.
 
     The inverse of rows_for_cols, which is not quite the same as dividing: that
@@ -198,13 +228,14 @@ def cols_for_rows(rows, aspect=100.0 / 115.0):
     screen with -- a height that is one row too tall is exactly the failure
     this is here to avoid.
     """
-    cols = int(rows * 4 * aspect / (2 * DOT_ASPECT))
-    while cols > 1 and rows_for_cols(cols, aspect) > rows:
+    dot_aspect = measured_dot_aspect() if dot_aspect is None else dot_aspect
+    cols = int(rows * 4 * aspect / (2 * dot_aspect))
+    while cols > 1 and rows_for_cols(cols, aspect, dot_aspect) > rows:
         cols -= 1
     return max(1, cols)
 
 
-def to_braille(svg, cols, aspect=100.0 / 115.0, threshold=50):
+def to_braille(svg, cols, aspect=100.0 / 115.0, threshold=50, dot_aspect=None):
     """Render an SVG string to braille art `cols` characters wide.
 
     `aspect` is the source's width/height. It is passed in rather than measured
@@ -213,5 +244,5 @@ def to_braille(svg, cols, aspect=100.0 / 115.0, threshold=50):
     out at different heights depending on their charges.
     """
     dots_w = cols * 2
-    rows = rows_for_cols(cols, aspect)
+    rows = rows_for_cols(cols, aspect, dot_aspect)
     return encode(bitmap(svg.encode(), dots_w, rows * 4, threshold))

@@ -5,9 +5,9 @@ copied there rather than symlinked to the theme source, so this reads the state
 directory and not the theme catalogue -- a user theme and a stock one look the
 same from here, which is the point.
 
-Everything degrades to None rather than raising. A missing palette means the app
-falls back to whatever libadwaita would have done on its own, which is a
-perfectly good look; it is not worth a crash.
+Everything degrades rather than raising. A missing palette means there is no
+Omarchy theme to follow -- plain Arch, or any other desktop -- and the app uses
+GENERIC below instead; it is not worth a crash either way.
 """
 
 import pathlib
@@ -21,6 +21,25 @@ NAME = STATE / "theme.name"
 # and several background tiers); these are the ones with a job here.
 WANTED = ("mode", "accent", "selection", "background", "dark_background",
           "lighter_background", "foreground", "light_foreground", "muted")
+
+
+# Palette for a system with no Omarchy theme to read. Deliberately not a copy of
+# an Omarchy theme: it is a neutral dark surface with a green accent, and every
+# colour is opaque. Omarchy windows are translucent because its gtk.css hook
+# gives them alpha to sit over a wallpaper the theme also controls; with no
+# theme there is no such arrangement, and a window that lets an unknown desktop
+# through is a legibility problem rather than a look.
+GENERIC = {
+    "mode": "dark",
+    "background": "#1b1d1e",
+    "dark_background": "#121415",
+    "lighter_background": "#25282a",
+    "foreground": "#e3e6e4",
+    "light_foreground": "#ffffff",
+    "muted": "#8b918e",
+    "accent": "#3fb950",
+    "selection": "#2c5c37",
+}
 
 
 def _parse_flat_toml(text):
@@ -50,6 +69,19 @@ def palette():
         return None
     colours = {k: raw[k] for k in WANTED if k in raw}
     return colours or None
+
+
+def effective_palette():
+    """(colours, generic) -- the live Omarchy palette, or the generic one.
+
+    The flag matters to the caller: the generic palette is the app dressing
+    itself, so it may also draw a border and insist on opacity, while an
+    Omarchy palette is the system's own and is followed rather than decorated.
+    """
+    colours = palette()
+    if colours:
+        return colours, False
+    return dict(GENERIC), True
 
 
 def name():

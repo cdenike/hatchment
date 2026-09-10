@@ -82,13 +82,18 @@ def _user_stylesheet_themes_gtk():
         return False
 
 
-def build_css(colours):
+def build_css(colours, generic=False):
     """Base styling, the accent for the art, and a palette fallback.
 
     The art's colour is ours to set in every case: it is a plain label, so
     without a rule it takes the window foreground, and the accent is the whole
     point of asking. The named colours below are only a fallback for systems
     with no retint hook -- where one exists, it wins and is better.
+
+    `generic` says the palette is the app's own rather than the system's, which
+    happens on a machine with no Omarchy theme to read. Then the window also
+    gets a border in the accent: with a theme, the desktop is already saying
+    where this window ends, and with none it has to say so itself.
     """
     css = BASE_CSS
     if not colours:
@@ -135,6 +140,9 @@ def build_css(colours):
         # The art itself takes the accent: it is the one element on screen that
         # is purely decorative, so it can carry the theme's loudest colour.
         css += "\n.arms { color: %s; }\n" % accent
+        if generic:
+            css += ("\nwindow.background {"
+                    " border: 1px solid %s; border-radius: 12px; }\n" % accent)
 
     return ("\n".join(defs) + "\n" + css).encode()
 
@@ -341,11 +349,20 @@ class HatchmentWindow(Adw.ApplicationWindow):
         # Sized to the screen rather than to a constant: see hatchment.screensaver.
         size = screensaver.fit()
         write(SCREENSAVER, draw_at(self.blazon, size.cols))
-        self.toast("Set as screensaver branding (%s)" % size)
+        # The preview goes before the toast deliberately. Anything raised in a
+        # GTK callback abandons the rest of the function without propagating
+        # anywhere useful, so the part the user actually asked for must not sit
+        # behind a decorative one -- which is exactly how a formatting error in
+        # the toast came to look like a broken preview button.
         if self.preview_check.get_active():
-            subprocess.run(["omarchy-launch-screensaver", "force"],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                           check=False)
+            try:
+                subprocess.run(["omarchy-launch-screensaver", "force"],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL, check=False)
+            except OSError:
+                self.toast("Could not launch the screensaver")
+                return
+        self.toast("Set as screensaver branding (%s)" % size)
 
     def on_export(self, _btn, fmt="svg"):
         """Save the arms as vector or raster.
@@ -414,10 +431,10 @@ class HatchmentApp(Adw.Application):
         do not, and the window ends up half in the new theme and half in the
         old. Removing the provider and adding a new one invalidates the lot.
         """
-        colours = theme.palette()
+        colours, generic = theme.effective_palette()
         display = Gdk.Display.get_default()
         provider = Gtk.CssProvider()
-        provider.load_from_data(build_css(colours))
+        provider.load_from_data(build_css(colours, generic))
         if self.provider is not None:
             Gtk.StyleContext.remove_provider_for_display(display, self.provider)
         Gtk.StyleContext.add_provider_for_display(

@@ -14,7 +14,6 @@ failure worth avoiding here.
 
 import os
 import re
-import shutil
 import subprocess
 
 from .render import fit_cols
@@ -65,10 +64,19 @@ def terminal_cols():
     `shutil.get_terminal_size` substitutes would be a guess wearing a
     measurement's clothes -- so ask the streams directly, and let COLUMNS speak
     for anyone who exports it deliberately.
+
+    Each stream is measured through the descriptor that was found to be a
+    terminal, not through shutil, which always measures stdout however it was
+    asked. The documented way to run this -- `hatchment --fastfetch --quiet
+    >/dev/null` from a shell profile -- redirects stdout and keeps stderr on the
+    terminal, which is precisely the case shutil gets wrong.
     """
-    for stream in (2, 1):
-        if os.isatty(stream):
-            return shutil.get_terminal_size((0, 0)).columns or None
+    for fd in (2, 1):
+        if os.isatty(fd):
+            try:
+                return os.get_terminal_size(fd).columns or None
+            except OSError:
+                continue
     try:
         return int(os.environ["COLUMNS"]) or None
     except (KeyError, ValueError):
