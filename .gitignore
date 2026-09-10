@@ -5,3 +5,10 @@ __pycache__/
 # source and must not be swept up with them.
 /*.svg
 /*.png
+
+# makepkg builds in place: the source tarball it downloads, the extracted tree,
+# the fakeroot staging directory, and the package itself.
+/packaging/aur/*.tar.gz
+/packaging/aur/*.pkg.tar.zst
+/packaging/aur/src/
+/packaging/aur/pkg/
