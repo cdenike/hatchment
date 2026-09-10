@@ -33,7 +33,16 @@ HATCH = {
 }
 
 
+# Furs sit outside the metal/colour split in theory, and heralds treat each one
+# as whichever it reads as. Flattened to two tones that judgement is simply how
+# light the fur draws: ermine and vair are mostly white ground, counter-ermine
+# is mostly black.
+FUR_IS_METAL = {"ermine": True, "vair": True, "counter-ermine": False}
+
+
 def is_metal(tincture):
+    if tincture in FUR_IS_METAL:
+        return FUR_IS_METAL[tincture]
     return tincture in METALS
 
 
@@ -65,26 +74,72 @@ DIVISIONS = {
 # resolution, so the generator leans on them heavily.
 ORDINARIES = ["cross", "fess", "pale", "bend", "chevron", "saltire", "chief"]
 
+# Variations of the field: a repeating two-tincture pattern instead of a flat
+# ground. These are the best thing in the whole vocabulary for this target --
+# they are already two-tone by definition, so nothing is lost flattening them,
+# and the repeat gives texture that hatching could never survive at this size.
+VARIATIONS = {
+    "barry": {"count": 6},        # horizontal bars
+    "paly": {"count": 6},         # vertical pales
+    "bendy": {"count": 6},        # diagonal bends
+    "checky": {"count": 6},       # checkerboard
+    "lozengy": {"count": 5},      # diamonds
+    "gyronny": {"count": 8},      # wedges radiating from the centre
+    "chevronny": {"count": 5},    # stacked chevrons
+}
+
+# Furs are the third class of tincture, alongside metals and colours, and they
+# are the most medieval thing on a shield. Ermine is a white field strewn with
+# black tails; counter-ermine inverts it; vair is interlocking bells.
+FURS = ["ermine", "counter-ermine", "vair"]
+
 # Charges are simple silhouettes. Anything with interior detail (a lion's mane,
 # a spread eagle's feathers) turns to mud below about 60 dots wide, so the
 # renderer drops to this list's simplest members when the target is small.
+#
+# Themes are a filter over this table, not a separate vocabulary. Heraldry
+# already had both registers: castles and swords on one side, and on the other
+# a whole celestial cabinet -- the sun in splendour, the estoile with its wavy
+# rays, the increscent moon, the comet. Nothing here is invented.
 CHARGES = {
-    "mullet": {"complexity": 1},      # five-pointed star
-    "roundel": {"complexity": 1},
-    "lozenge": {"complexity": 1},
-    "crescent": {"complexity": 2},
-    "billet": {"complexity": 1},
-    "fleur-de-lis": {"complexity": 3},
-    "tower": {"complexity": 3},
+    # Neutral shapes, at home in either register.
+    "roundel": {"complexity": 1, "themes": {"medieval", "cosmic"}},
+    "lozenge": {"complexity": 1, "themes": {"medieval", "cosmic"}},
+    "billet": {"complexity": 1, "themes": {"medieval"}},
+    "annulet": {"complexity": 1, "themes": {"medieval", "cosmic"}},
+
+    # Medieval.
+    "fleur-de-lis": {"complexity": 3, "themes": {"medieval"}},
+    "tower": {"complexity": 3, "themes": {"medieval"}},
+    "sword": {"complexity": 2, "themes": {"medieval"}},
+    "key": {"complexity": 3, "themes": {"medieval"}},
+    "crown": {"complexity": 3, "themes": {"medieval"}},
+    "portcullis": {"complexity": 3, "themes": {"medieval"}},
+    "chalice": {"complexity": 3, "themes": {"medieval"}},
+
+    # Cosmic.
+    "mullet": {"complexity": 1, "themes": {"cosmic", "medieval"}},
+    "crescent": {"complexity": 2, "themes": {"cosmic", "medieval"}},
+    "sun in splendour": {"complexity": 2, "themes": {"cosmic"}},
+    "estoile": {"complexity": 2, "themes": {"cosmic"}},
+    "comet": {"complexity": 3, "themes": {"cosmic"}},
+    "increscent": {"complexity": 2, "themes": {"cosmic"}},
+    "orb": {"complexity": 3, "themes": {"cosmic"}},
 }
+
+THEMES = ("medieval", "cosmic")
 
 
 class Blazon:
     """A generated coat of arms, in both formal and drawable form."""
 
-    def __init__(self, rng):
+    def __init__(self, rng, theme=None):
         self.rng = rng
+        # None means draw from both registers.
+        self.theme = theme
         self.field = None
+        self.fur = None
+        self.variation = None
         self.division = None
         self.field2 = None
         self.ordinary = None
@@ -93,6 +148,16 @@ class Blazon:
         self.charge_tincture = None
         self.charge_count = 0
         self.charge_anchor = "centre"
+
+    def _charge_pool(self, max_complexity):
+        pool = []
+        for name, meta in CHARGES.items():
+            if meta["complexity"] > max_complexity:
+                continue
+            if self.theme and self.theme not in meta["themes"]:
+                continue
+            pool.append(name)
+        return pool
 
     # -- generation --
 
@@ -104,6 +169,32 @@ class Blazon:
         # built, for the same legibility reason at a different distance.
         self.field = (rng.choice(METALS) if rng.random() < 0.62
                       else rng.choice(COLOURS))
+
+        # A variation replaces the flat ground with a repeating two-tincture
+        # pattern. It takes nothing else: the pattern alternates metal and
+        # colour across the whole shield, so an ordinary or a centred charge has
+        # no single tincture beneath it -- the same problem a divided field has,
+        # only everywhere at once. Blazoned and drawn, it stands alone.
+        # Asking for a theme is asking to see its charges, and a variation takes
+        # no charge at all -- so an unthemed roll indulges them freely, while a
+        # themed one keeps them rare. Otherwise picking "cosmic" hands you a
+        # barry field with nothing cosmic anywhere on it.
+        variation_chance = 0.08 if self.theme else 0.26
+        if rng.random() < variation_chance:
+            self.variation = rng.choice(list(VARIATIONS))
+            self.field2 = pick_contrasting(self.field, rng)
+            return self
+
+        # A fur is a tincture, not a pattern, so unlike a variation it behaves
+        # as a normal ground and can carry an ordinary or a charge. Ermine is
+        # counted as a metal for contrast, counter-ermine as a colour, which is
+        # how heralds treat them.
+        if rng.random() < 0.16:
+            self.fur = rng.choice(FURS)
+            # The fur *is* the field from here on, so every contrast check
+            # downstream compares against it rather than the tincture it
+            # replaced.
+            self.field = self.fur
 
         # A divided field is its own visual interest, so it competes with an
         # ordinary. Pick one or the other, mostly, or arms get noisy.
@@ -119,10 +210,12 @@ class Blazon:
         # commonest real forms, and it is also the only route to the scattered
         # multi-charge arrangement -- an ordinary crowds it out, and a divided
         # field has no unambiguous ground to scatter across.
+        # A themed roll leans towards the arrangements that can actually carry a
+        # charge: a bare field, or an ordinary through the centre to sit one on.
         roll = rng.random()
-        if roll < 0.36:
+        if roll < (0.14 if self.theme else 0.36):
             self._divide()
-        elif roll < 0.78:
+        elif roll < (0.50 if self.theme else 0.78):
             self._add_ordinary()
         # else: bare field, charged below.
 
@@ -144,7 +237,10 @@ class Blazon:
 
         can_charge = self.charge_anchor is not None and (
             self._ordinary_covers_centre() or self.ordinary is None)
-        if can_charge and (self.ordinary is None or rng.random() < 0.4):
+        # With a theme chosen, take every chance to charge; without one, an
+        # ordinary is often enough on its own.
+        wants_charge = self.ordinary is None or self.theme or rng.random() < 0.4
+        if can_charge and wants_charge:
             self._add_charge(max_complexity)
         return self
 
@@ -173,7 +269,7 @@ class Blazon:
 
     def _add_charge(self, max_complexity):
         rng = self.rng
-        pool = [c for c, m in CHARGES.items() if m["complexity"] <= max_complexity]
+        pool = self._charge_pool(max_complexity)
         if not pool:
             return
         self.charge = rng.choice(pool)
@@ -200,7 +296,16 @@ class Blazon:
     def describe(self):
         """The blazon proper, in something close to heraldic word order."""
         parts = []
-        if self.division:
+        if self.variation:
+            # Blazon counts the pieces: "Barry of six or and azure".
+            n = {6: "six", 5: "five", 8: "eight"}.get(
+                VARIATIONS[self.variation]["count"], "")
+            of = " of %s" % n if n and self.variation not in ("gyronny",) else ""
+            if self.variation == "gyronny":
+                of = " of eight"
+            parts.append("%s%s %s and %s" % (self.variation.capitalize(), of,
+                                             self.field, self.field2))
+        elif self.division:
             parts.append("%s %s and %s" % (self.division.capitalize(),
                                            self.field, self.field2))
         else:

@@ -89,6 +89,20 @@ class ArmigerWindow(Adw.ApplicationWindow):
         self.seed_label.set_selectable(True)
         box.append(self.seed_label)
 
+        # -- theme --
+        theme_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        theme_label = Gtk.Label(label="Theme")
+        theme_label.set_xalign(0)
+        theme_row.append(theme_label)
+        self.theme_drop = Gtk.DropDown.new_from_strings(
+            ["Both", "Medieval", "Cosmic"])
+        self.theme_drop.set_hexpand(True)
+        # Re-roll on change so the choice shows itself immediately rather than
+        # waiting for the next press of Randomise.
+        self.theme_drop.connect("notify::selected", lambda *_: self.roll(None))
+        theme_row.append(self.theme_drop)
+        box.append(theme_row)
+
         # -- seed entry, for reproducing arms --
         seed_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.seed_entry = Gtk.Entry()
@@ -156,10 +170,12 @@ class ArmigerWindow(Adw.ApplicationWindow):
         self.set_busy(True)
         seed = seed or os.urandom(8).hex()
 
+        theme = (None, "medieval", "cosmic")[self.theme_drop.get_selected()]
+
         def work():
             try:
                 rng = random.Random(seed)
-                blazon, art = generate(rng, PREVIEW_COLS)
+                blazon, art = generate(rng, PREVIEW_COLS, theme=theme)
                 GLib.idle_add(self.show_result, blazon, art, seed)
             except Exception as exc:  # surface it rather than hanging on "Rolling…"
                 GLib.idle_add(self.show_error, str(exc))

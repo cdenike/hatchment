@@ -61,6 +61,51 @@ ordinary and charge stop separating from the field. Braille output flattens to
 two tones instead. It loses *which* colour a tincture is and keeps the shapes,
 which is the right trade when the shapes are all a 24-column shield can carry.
 
+## Patterns, furs and themes
+
+### Variations of the field
+
+Instead of a flat ground, a shield may carry a repeating two-tincture pattern:
+**barry**, **paly**, **bendy**, **checky**, **lozengy**, **gyronny** and
+**chevronny**. These are the best thing in the whole vocabulary for this target
+— already two-tone by definition, so nothing is lost flattening them, and the
+repeat gives texture that hatching could never survive at this size.
+
+A variation stands alone. It alternates metal and colour across the entire
+shield, so an ordinary or a centred charge has no single tincture beneath it —
+the divided-field problem, everywhere at once.
+
+### Furs
+
+**Ermine** (white strewn with black tails), **counter-ermine** (its inverse) and
+**vair** (interlocking bells). Furs are the third class of tincture alongside
+metals and colours, and the most medieval thing you can put on a shield. Unlike
+a variation a fur behaves as an ordinary ground, so it takes charges normally —
+ermine counts as a metal for contrast, counter-ermine as a colour.
+
+Furs survive the two-tone flattening untouched: they were always black and
+white, so there is nothing to lose.
+
+### Themes
+
+```bash
+armiger --theme medieval
+armiger --theme cosmic
+```
+
+Themes filter the charge table; they do not add a separate vocabulary, because
+heraldry already had both registers.
+
+- **Medieval** — tower, sword, key, crown, portcullis, chalice, fleur-de-lis,
+  billet
+- **Cosmic** — sun in splendour, estoile, comet, increscent, orb, mullet,
+  crescent, annulet
+
+Choosing a theme also changes the *shape* of the arms, not just the charges: a
+themed roll keeps variations rare and favours arrangements that can carry a
+charge. Otherwise picking "cosmic" would happily hand you a barry field with
+nothing cosmic anywhere on it.
+
 ## Graphical interface
 
 ```bash
@@ -127,6 +172,9 @@ python3 -m armiger --fastfetch --quiet >/dev/null
 ## Legibility gate
 
 Arms are re-rolled until the render lands between 10% and 52% of dots set.
+This biases the mix: variations clear the gate every time while other forms sit
+around 63-75%, so variations end up commoner among survivors (~36%) than the
+26% they are rolled at.
 Outside that band the shield has either collapsed to near-empty or filled in
 solid, and neither is worth installing. The measurement counts *dots*, not
 cells: a cell-based count calls any textured area full, which is exactly the

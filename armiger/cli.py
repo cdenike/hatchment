@@ -54,11 +54,11 @@ def draw_at(blazon, cols):
     return to_braille(render(blazon, solid=True), cols)
 
 
-def generate(rng, cols, max_complexity=3, attempts=60):
+def generate(rng, cols, max_complexity=3, attempts=60, theme=None):
     """Roll arms until one renders legibly at `cols` wide."""
     last = None
     for _ in range(attempts):
-        blazon = Blazon(rng).generate(max_complexity=max_complexity)
+        blazon = Blazon(rng, theme=theme).generate(max_complexity=max_complexity)
         art = draw_at(blazon, cols)
         last = (blazon, art)
         if INK_MIN <= ink_ratio(art) <= INK_MAX:
@@ -82,6 +82,9 @@ def main(argv=None):
                    help="width in terminal columns (default: 24)")
     p.add_argument("--simple", action="store_true",
                    help="restrict to the simplest charges")
+    p.add_argument("--theme", choices=("medieval", "cosmic"),
+                   help="draw charges from one register only "
+                        "(default: both)")
     p.add_argument("--fastfetch", action="store_true",
                    help="install as the fastfetch logo")
     p.add_argument("--screensaver", action="store_true",
@@ -98,7 +101,8 @@ def main(argv=None):
     rng = random.Random(seed)
 
     blazon, art = generate(rng, args.cols,
-                           max_complexity=1 if args.simple else 3)
+                           max_complexity=1 if args.simple else 3,
+                           theme=args.theme)
 
     if not args.quiet:
         print(blazon.describe())

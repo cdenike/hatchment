@@ -56,6 +56,107 @@ def _hatch_defs(spacing, stroke):
   </pattern>"""
 
 
+def _fur_defs(scale=1.0):
+    """Ermine, counter-ermine and vair as repeating patterns.
+
+    Furs are already black-and-white by nature, so unlike hatching they need no
+    special handling when the rest of the shield flattens to two tones -- they
+    are the one pre-modern tincture that was always going to survive this.
+
+    The ermine spot is simplified to its silhouette: a tail with three dots
+    above it. The real charge has a finer waist and splayed dots, none of which
+    is there at 4 dots across.
+    """
+    e = 22.0 * scale        # ermine tile
+    v = 20.0 * scale        # vair tile
+
+    def spot(colour):
+        # Drawn around the tile centre so the pattern tiles without clipping.
+        cx, cy = e / 2, e / 2
+        w = e * 0.20
+        return (f'<path fill="{colour}" d="'
+                f'M {cx} {cy - e * 0.06} '
+                f'L {cx + w} {cy + e * 0.22} '
+                f'L {cx - w} {cy + e * 0.22} Z"/>'
+                f'<circle fill="{colour}" cx="{cx}" cy="{cy - e * 0.20}" r="{e * 0.055}"/>'
+                f'<circle fill="{colour}" cx="{cx - w * 0.85}" cy="{cy - e * 0.10}" r="{e * 0.055}"/>'
+                f'<circle fill="{colour}" cx="{cx + w * 0.85}" cy="{cy - e * 0.10}" r="{e * 0.055}"/>')
+
+    return f"""
+  <pattern id="ermine" width="{e}" height="{e}" patternUnits="userSpaceOnUse">
+    <rect x="0" y="0" width="{e}" height="{e}" fill="#fff"/>
+    {spot('#000')}
+  </pattern>
+  <pattern id="counter-ermine" width="{e}" height="{e}" patternUnits="userSpaceOnUse">
+    <rect x="0" y="0" width="{e}" height="{e}" fill="#000"/>
+    {spot('#fff')}
+  </pattern>
+  <pattern id="vair" width="{v}" height="{v}" patternUnits="userSpaceOnUse">
+    <rect x="0" y="0" width="{v}" height="{v}" fill="#fff"/>
+    <path fill="#000" d="M 0 0 L {v / 2} 0 L {v * 0.42} {v * 0.36}
+      Q {v * 0.25} {v * 0.52} {v * 0.08} {v * 0.36} Z"/>
+    <path fill="#000" d="M {v / 2} {v / 2} L {v} {v / 2} L {v * 0.92} {v * 0.86}
+      Q {v * 0.75} {v * 1.02} {v * 0.58} {v * 0.86} Z"/>
+  </pattern>"""
+
+
+def _variation_shapes(name, count, w, h):
+    """The second tincture of a variation, painted over the first.
+
+    Only the alternating pieces are drawn; the first tincture is already the
+    ground beneath. Everything is clipped to the shield, so pieces deliberately
+    overrun the box.
+    """
+    out = []
+    if name == "barry":
+        step = h / count
+        for i in range(1, count, 2):
+            out.append(f'<rect x="-5" y="{i * step}" width="{w + 10}" height="{step}"/>')
+    elif name == "paly":
+        step = w / count
+        for i in range(1, count, 2):
+            out.append(f'<rect x="{i * step}" y="-5" width="{step}" height="{h + 10}"/>')
+    elif name == "bendy":
+        # Diagonal bands, drawn as a rotated strip field wide enough to cover
+        # the shield's diagonal.
+        step = (w + h) / count
+        for i in range(1, count * 2, 2):
+            out.append(f'<rect x="{-w + i * step}" y="{-h}" width="{step}" '
+                       f'height="{h * 3}" transform="rotate(45 {w / 2} {h / 2})"/>')
+    elif name == "checky":
+        sx, sy = w / count, h / count
+        for r in range(count + 1):
+            for c in range(count + 1):
+                if (r + c) % 2:
+                    out.append(f'<rect x="{c * sx}" y="{r * sy}" width="{sx}" height="{sy}"/>')
+    elif name == "lozengy":
+        sx, sy = w / count, h / count
+        for r in range(-1, count + 1):
+            for c in range(-1, count + 1):
+                cx = c * sx + (sx / 2 if r % 2 else 0)
+                cy = r * sy
+                out.append(f'<polygon points="{cx},{cy - sy / 2} {cx + sx / 2},{cy} '
+                           f'{cx},{cy + sy / 2} {cx - sx / 2},{cy}"/>')
+    elif name == "gyronny":
+        # Eight wedges from the fess point; every other one is painted.
+        import math
+        cx, cy = w / 2, h * 0.45
+        R = w + h
+        for i in range(0, 8, 2):
+            a1 = math.radians(i * 45 - 90)
+            a2 = math.radians((i + 1) * 45 - 90)
+            p1 = (cx + R * math.cos(a1), cy + R * math.sin(a1))
+            p2 = (cx + R * math.cos(a2), cy + R * math.sin(a2))
+            out.append(f'<polygon points="{cx},{cy} {p1[0]},{p1[1]} {p2[0]},{p2[1]}"/>')
+    elif name == "chevronny":
+        step = h / count
+        for i in range(1, count * 2, 2):
+            y = i * step
+            out.append(f'<polygon points="-5,{y} {w / 2},{y - step * 1.1} {w + 5},{y} '
+                       f'{w + 5},{y + step} {w / 2},{y + step * -0.1} -5,{y + step}"/>')
+    return "".join(out)
+
+
 def _fill(tincture, solid):
     """How to paint one tincture.
 
@@ -64,6 +165,10 @@ def _fill(tincture, solid):
     between colours, but a readable two-tone shield beats an illegible seven-tone
     one, and at 40 dots across that is the actual choice.
     """
+    # Furs are patterns in both modes: they are black-and-white by nature, so
+    # there is nothing to flatten and no reason to lose them.
+    if tincture in ("ermine", "counter-ermine", "vair"):
+        return f"url(#{tincture})"
     if solid:
         return "#fff" if tincture in ("or", "argent") else "#000"
     if tincture == "argent":
@@ -117,6 +222,128 @@ def _charge_path(name, cx, cy, r):
                 f'<rect x="{cx - r * 0.62}" y="{cy + r * 0.52}" '
                 f'width="{r * 1.24}" height="{r * 0.22}"/>')
 
+    if name == "annulet":
+        return (f'<path fill-rule="evenodd" d="'
+                f'M {cx} {cy - r} a {r} {r} 0 1 0 0.01 0 Z '
+                f'M {cx} {cy - r * 0.60} a {r * 0.60} {r * 0.60} 0 1 0 0.01 0 Z"/>')
+
+    if name == "sun in splendour":
+        # Disc plus alternating straight rays. Sixteen rays is traditional;
+        # twelve is what survives when each one is two dots wide.
+        import math
+        rays = []
+        for i in range(12):
+            a = math.radians(i * 30)
+            a1, a2 = a - 0.13, a + 0.13
+            rays.append(
+                f'<polygon points="'
+                f'{cx + r * 0.62 * math.cos(a1)},{cy + r * 0.62 * math.sin(a1)} '
+                f'{cx + r * math.cos(a)},{cy + r * math.sin(a)} '
+                f'{cx + r * 0.62 * math.cos(a2)},{cy + r * 0.62 * math.sin(a2)}"/>')
+        return f'<circle cx="{cx}" cy="{cy}" r="{r * 0.60}"/>' + "".join(rays)
+
+    if name == "estoile":
+        # Six wavy rays. The waviness is what separates an estoile from a
+        # mullet; at this size it reads as concave flanks, which is enough.
+        import math
+        pts = []
+        for i in range(12):
+            a = -math.pi / 2 + i * math.pi / 6
+            rad = r if i % 2 == 0 else r * 0.30
+            pts.append((cx + rad * math.cos(a), cy + rad * math.sin(a)))
+        return f'<polygon points="{_poly(pts)}"/>'
+
+    if name == "comet":
+        import math
+        pts = []
+        for i in range(10):
+            a = -math.pi / 2 + i * math.pi / 5
+            rad = r * 0.52 if i % 2 == 0 else r * 0.22
+            pts.append((cx - r * 0.30 + rad * math.cos(a),
+                        cy - r * 0.30 + rad * math.sin(a)))
+        head = f'<polygon points="{_poly(pts)}"/>'
+        tail = (f'<path d="M {cx - r * 0.10} {cy - r * 0.05} '
+                f'L {cx + r * 0.95} {cy + r * 0.85} '
+                f'L {cx + r * 0.45} {cy + r * 0.95} Z"/>')
+        return head + tail
+
+    if name == "increscent":
+        # A crescent with its horns to dexter, which is what makes it an
+        # increscent rather than a plain crescent.
+        return (f'<g transform="rotate(90 {cx} {cy})">'
+                f'<path fill-rule="evenodd" d="'
+                f'M {cx} {cy - r} a {r} {r} 0 1 0 0.01 0 Z '
+                f'M {cx} {cy - r * 1.05} a {r * 0.82} {r * 0.82} 0 1 0 0.01 0 Z"/></g>')
+
+    if name == "orb":
+        return (f'<circle cx="{cx}" cy="{cy + r * 0.18}" r="{r * 0.78}"/>'
+                f'<rect x="{cx - r * 0.78}" y="{cy + r * 0.02}" '
+                f'width="{r * 1.56}" height="{r * 0.20}" fill="#fff"/>'
+                f'<rect x="{cx - r * 0.12}" y="{cy - r}" '
+                f'width="{r * 0.24}" height="{r * 0.42}"/>'
+                f'<rect x="{cx - r * 0.34}" y="{cy - r * 0.84}" '
+                f'width="{r * 0.68}" height="{r * 0.20}"/>')
+
+    if name == "sword":
+        return (f'<polygon points="{cx},{cy - r} {cx + r * 0.15},{cy - r * 0.72} '
+                f'{cx + r * 0.15},{cy + r * 0.30} {cx - r * 0.15},{cy + r * 0.30} '
+                f'{cx - r * 0.15},{cy - r * 0.72}"/>'
+                f'<rect x="{cx - r * 0.62}" y="{cy + r * 0.30}" '
+                f'width="{r * 1.24}" height="{r * 0.20}"/>'
+                f'<rect x="{cx - r * 0.12}" y="{cy + r * 0.50}" '
+                f'width="{r * 0.24}" height="{r * 0.38}"/>'
+                f'<circle cx="{cx}" cy="{cy + r * 0.94}" r="{r * 0.16}"/>')
+
+    if name == "key":
+        return (f'<path fill-rule="evenodd" d="'
+                f'M {cx} {cy - r} a {r * 0.40} {r * 0.40} 0 1 0 0.01 0 Z '
+                f'M {cx} {cy - r * 0.86} a {r * 0.20} {r * 0.20} 0 1 0 0.01 0 Z"/>'
+                f'<rect x="{cx - r * 0.10}" y="{cy - r * 0.24}" '
+                f'width="{r * 0.20}" height="{r * 1.10}"/>'
+                f'<rect x="{cx}" y="{cy + r * 0.50}" '
+                f'width="{r * 0.40}" height="{r * 0.16}"/>'
+                f'<rect x="{cx}" y="{cy + r * 0.80}" '
+                f'width="{r * 0.30}" height="{r * 0.16}"/>')
+
+    if name == "crown":
+        return (f'<path d="'
+                f'M {cx - r * 0.86} {cy + r * 0.10} L {cx - r * 0.60} {cy - r * 0.62} '
+                f'L {cx - r * 0.30} {cy + r * 0.02} L {cx} {cy - r * 0.80} '
+                f'L {cx + r * 0.30} {cy + r * 0.02} L {cx + r * 0.60} {cy - r * 0.62} '
+                f'L {cx + r * 0.86} {cy + r * 0.10} Z"/>'
+                f'<rect x="{cx - r * 0.90}" y="{cy + r * 0.10}" '
+                f'width="{r * 1.80}" height="{r * 0.40}"/>'
+                f'<circle cx="{cx}" cy="{cy - r * 0.92}" r="{r * 0.13}"/>'
+                f'<circle cx="{cx - r * 0.60}" cy="{cy - r * 0.76}" r="{r * 0.11}"/>'
+                f'<circle cx="{cx + r * 0.60}" cy="{cy - r * 0.76}" r="{r * 0.11}"/>')
+
+    if name == "portcullis":
+        bars = []
+        for i in range(4):
+            x = cx - r * 0.78 + i * (r * 1.56 / 3)
+            bars.append(f'<rect x="{x - r * 0.07}" y="{cy - r * 0.80}" '
+                        f'width="{r * 0.14}" height="{r * 1.60}"/>')
+            bars.append(f'<polygon points="{x - r * 0.13},{cy + r * 0.80} '
+                        f'{x + r * 0.13},{cy + r * 0.80} {x},{cy + r * 1.02}"/>')
+        for i in range(3):
+            y = cy - r * 0.80 + i * (r * 1.20 / 2)
+            bars.append(f'<rect x="{cx - r * 0.85}" y="{y - r * 0.07}" '
+                        f'width="{r * 1.70}" height="{r * 0.14}"/>')
+        return "".join(bars)
+
+    if name == "chalice":
+        return (f'<path d="M {cx - r * 0.60} {cy - r * 0.70} '
+                f'L {cx + r * 0.60} {cy - r * 0.70} '
+                f'C {cx + r * 0.58} {cy + r * 0.10} {cx + r * 0.22} {cy + r * 0.28} '
+                f'{cx + r * 0.10} {cy + r * 0.34} '
+                f'L {cx - r * 0.10} {cy + r * 0.34} '
+                f'C {cx - r * 0.22} {cy + r * 0.28} {cx - r * 0.58} {cy + r * 0.10} '
+                f'{cx - r * 0.60} {cy - r * 0.70} Z"/>'
+                f'<rect x="{cx - r * 0.09}" y="{cy + r * 0.34}" '
+                f'width="{r * 0.18}" height="{r * 0.40}"/>'
+                f'<rect x="{cx - r * 0.52}" y="{cy + r * 0.74}" '
+                f'width="{r * 1.04}" height="{r * 0.20}"/>')
+
     if name == "tower":
         w = r * 1.30
         return (f'<path d="'
@@ -165,6 +392,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
                f'height="{int(size * h / w)}">')
     out.append("<defs>")
     out.append(_hatch_defs(spacing, stroke))
+    out.append(_fur_defs())
     out.append(f'<clipPath id="shield"><path d="{SHIELD}"/></clipPath>')
     out.append("</defs>")
 
@@ -176,7 +404,12 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
     # Field, then the second half if the arms are divided.
     out.append(f'<rect x="0" y="0" width="{w}" height="{h}" '
                f'fill="{_fill(blazon.field, solid)}"/>')
-    if blazon.division:
+    if blazon.variation:
+        from .blazon import VARIATIONS
+        count = VARIATIONS[blazon.variation]["count"]
+        shapes = _variation_shapes(blazon.variation, count, w, h)
+        out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
+    elif blazon.division:
         from .blazon import DIVISIONS
         poly = DIVISIONS[blazon.division][1]
         scaled = [(x, y * h / 100.0) for x, y in poly]
@@ -199,12 +432,15 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
         if blazon.charge_count == 1:
             # A charge anchored to one half of a divided field is drawn smaller
             # and set into that half, clear of the division line.
+            # Drawn large. A charge occupying a third of the shield is normal in
+            # real heraldry and essential here: detail below about 20 dots
+            # across stops resolving, and these are 2 dots per SVG unit.
             if anchor == "upper":
-                cx, cy, r = 50, 27, 15
+                cx, cy, r = 50, 28, 19
             elif anchor == "dexter":
-                cx, cy, r = 26, 44, 14
+                cx, cy, r = 26, 44, 17
             else:
-                cx, cy, r = 50, 52 + drop, 20
+                cx, cy, r = 50, 54 + drop * 0.8, 27
             out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.2">'
                        f'{_charge_path(blazon.charge, cx, cy, r)}</g>')
         else:
