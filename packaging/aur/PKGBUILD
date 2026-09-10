@@ -1,0 +1,54 @@
+# Maintainer: Caden DeNike <caden.denike@gmail.com>
+pkgname=hatchment
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Procedural heraldry for the terminal: a random coat of arms as braille art for fastfetch and the Omarchy screensaver"
+arch=('any')
+url="https://github.com/cdenike/hatchment"
+license=('MIT')
+depends=('python' 'librsvg')
+optdepends=('gtk4: graphical interface'
+            'libadwaita: graphical interface'
+            'python-gobject: graphical interface')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('d655ebf2cee311a968dc48112932900e8edbf7310267dba60cc024142346ffa6')
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+
+  # The package is pure Python with no build step, so it is dropped in whole
+  # and reached through PYTHONPATH rather than installed into site-packages,
+  # which keeps it independent of the interpreter's version directory.
+  install -d "$pkgdir/usr/lib/$pkgname"
+  cp -r hatchment "$pkgdir/usr/lib/$pkgname/"
+
+  install -d "$pkgdir/usr/bin"
+  cat > "$pkgdir/usr/bin/hatchment" <<'LAUNCHER'
+#!/bin/bash
+export PYTHONPATH="/usr/lib/hatchment${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m hatchment "$@"
+LAUNCHER
+  chmod 755 "$pkgdir/usr/bin/hatchment"
+
+  install -Dm644 data/hatchment.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/hatchment.svg"
+
+  install -d "$pkgdir/usr/share/applications"
+  cat > "$pkgdir/usr/share/applications/hatchment.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=Hatchment
+GenericName=Coat of Arms Generator
+Comment=Generate a random coat of arms for fastfetch and the screensaver
+Exec=hatchment --gui
+Icon=hatchment
+Terminal=false
+Categories=Graphics;2DGraphics;
+Keywords=heraldry;coat of arms;shield;blazon;fastfetch;screensaver;
+StartupNotify=true
+StartupWMClass=org.omarchy.hatchment
+DESKTOP
+
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
