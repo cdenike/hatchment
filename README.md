@@ -136,6 +136,17 @@ themed roll keeps variations rare and favours arrangements that can carry a
 charge. Otherwise picking "cosmic" would happily hand you a barry field with
 nothing cosmic anywhere on it.
 
+**All** rolls a mode per shield rather than simply not filtering. That is the
+only way the pattern themes appear in it at all — fractals and geometrics are
+gated on the theme name, so an unfiltered roll could never reach them however
+long it ran. The modes are the five themes plus *free*, which is unfiltered
+heraldry; free is kept as its own mode because a theme suppresses variations and
+furs to make room for its charges, and without it barry, checky and ermine would
+nearly vanish from the one setting meant to show everything.
+
+Measured over 48 rolls of All: 18 charged arms, 10 geometric patterns, 9
+variations, 6 fractals, 5 plain.
+
 ### Lines of partition
 
 Every division and every band can be cut with a shaped edge instead of a

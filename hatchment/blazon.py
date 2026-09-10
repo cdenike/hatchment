@@ -158,6 +158,13 @@ THEMES = ("cosmic", "fractal", "geometric", "medieval", "natural")
 # be attached to something else: a stag has attires, never "an attires".
 BLAZON_NAME = {"attires": "pair of attires"}
 
+# What "All" rolls through. Every theme, plus "free": unfiltered heraldry, which
+# is what no theme used to mean on its own. Free is kept as its own mode rather
+# than dropped, because a theme suppresses variations and furs to make room for
+# its charges -- without it, barry and checky and ermine would nearly vanish
+# from the one setting that is supposed to show everything.
+ALL_MODES = THEMES + ("free",)
+
 
 class Blazon:
     """A generated coat of arms, in both formal and drawable form."""
@@ -195,6 +202,14 @@ class Blazon:
 
     def generate(self, max_complexity=3):
         rng = self.rng
+
+        # "All" means every theme's options, not the absence of one. Picking a
+        # mode per roll is what puts fractals and geometrics in the mix at all:
+        # those are gated on the theme name, so an unfiltered roll could never
+        # reach them however long it ran.
+        if self.theme is None:
+            mode = rng.choice(ALL_MODES)
+            self.theme = None if mode == "free" else mode
         # Weighted towards a metal field. Flattened to two tones, a colour field
         # becomes a solid black shield that swallows everything on it, so most
         # arms want a light ground -- which is also how most real arms are
