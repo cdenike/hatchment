@@ -44,6 +44,24 @@ def _hatch_defs(spacing, stroke):
     {bg}
     <rect x="0" y="0" width="{stroke}" height="{s}" fill="#000"/>
   </pattern>
+  <pattern id="murrey" width="{s}" height="{s}" patternUnits="userSpaceOnUse"
+           patternTransform="rotate(-45)">
+    {bg}
+    <rect x="0" y="0" width="{stroke}" height="{s}" fill="#000"/>
+    <rect x="0" y="0" width="{s}" height="{stroke}" fill="#000"/>
+  </pattern>
+  <pattern id="sanguine" width="{s}" height="{s}" patternUnits="userSpaceOnUse"
+           patternTransform="rotate(45)">
+    {bg}
+    <rect x="0" y="0" width="{stroke}" height="{s}" fill="#000"/>
+    <rect x="0" y="0" width="{s}" height="{stroke}" fill="#000"/>
+  </pattern>
+  <pattern id="tenné" width="{s}" height="{s}" patternUnits="userSpaceOnUse">
+    {bg}
+    <rect x="0" y="0" width="{s}" height="{stroke}" fill="#000"/>
+    <rect x="0" y="0" width="{stroke}" height="{s}" fill="#000"
+          transform="rotate(-45 {half} {half})"/>
+  </pattern>
   <pattern id="purpure" width="{s}" height="{s}" patternUnits="userSpaceOnUse"
            patternTransform="rotate(-45)">
     {bg}
@@ -227,10 +245,15 @@ def _banded_ordinary(name, style, w, h):
         y = h * 0.26
         edge = lines.points((-6, y), (w + 6, y), style, scale=sc)
         return edge + [(w + 6, -6), (-6, -6)]
-    if name == "bend":
-        # Two parallel diagonals, offset perpendicular to the run.
+    if name in ("bend", "bend sinister"):
+        # Two parallel diagonals, offset perpendicular to the run. The sinister
+        # bend is the same construction run from the other top corner, so it
+        # falls out of mirroring the endpoints rather than a second geometry.
         import math
-        p0, p1 = (-8, 6), (w + 8, h * 0.82)
+        if name == "bend":
+            p0, p1 = (-8, 6), (w + 8, h * 0.82)
+        else:
+            p0, p1 = (w + 8, 6), (-8, h * 0.82)
         dx, dy = p1[0] - p0[0], p1[1] - p0[1]
         L = math.hypot(dx, dy)
         nx, ny = -dy / L * 24, dx / L * 24
@@ -756,7 +779,10 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
         out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
     elif blazon.variation:
         from .blazon import VARIATIONS
-        count = VARIATIONS[blazon.variation]["count"]
+        # The count is rolled per shield; fall back to the first of the
+        # variation's own counts for a blazon built before it was.
+        count = (getattr(blazon, "variation_count", 0)
+                 or VARIATIONS[blazon.variation]["counts"][0])
         shapes = _variation_shapes(blazon.variation, count, w, h)
         out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
     elif blazon.division:

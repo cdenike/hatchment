@@ -22,6 +22,41 @@ W, H = 100.0, 115.0
 CX, CY = 50.0, 54.0
 
 
+def _pick(rng, label, roll):
+    """Roll a pattern's headline parameter, and remember how to say it.
+
+    Every generator opens by rolling the one number that decides what the
+    picture is -- iterations, points, rings, spokes. The blazon wants to name
+    it, but the drawing happens later and elsewhere, from a fresh generator
+    seeded the same way. Rather than duplicate each roll in a table that would
+    silently drift out of step, the generator records its own answer on the rng
+    it was handed, and `headline()` below replays the roll to read it back.
+    """
+    value = roll()
+    # The template and the number travel separately, because how a number is
+    # written is the blazon's business: it spells its counts in words.
+    rng.headline = (label, int(value))
+    return value
+
+
+def headline(pool, name, seed):
+    """(template, value) the named pattern will draw from `seed`, or None.
+
+    The generator is run for its parameter and its shapes are thrown away. It
+    is pure string-building with no I/O, and running it is what keeps the words
+    honest: the number named is the number rolled, from the same seed the
+    drawing will use, rather than a second guess at it kept in a table.
+    """
+    import random
+    rng = random.Random(seed)
+    rng.headline = None
+    try:
+        pool[name](rng)
+    except Exception:
+        return None
+    return rng.headline
+
+
 def _poly(pts):
     return '<polygon points="%s"/>' % " ".join("%.2f,%.2f" % p for p in pts)
 
@@ -49,7 +84,7 @@ def _regular(n, r, rot=0.0, cx=CX, cy=CY, squash=1.06):
 # --- fractal ---------------------------------------------------------------
 
 def sierpinski(rng):
-    depth = rng.randint(3, 5)
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(3, 5))
     inverted = rng.random() < 0.4
     out = []
 
@@ -72,7 +107,7 @@ def sierpinski(rng):
 
 
 def sierpinski_carpet(rng):
-    depth = rng.randint(2, 3)
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(2, 3))
     out = []
 
     def rec(x, y, w, h, d):
@@ -93,7 +128,7 @@ def sierpinski_carpet(rng):
 
 
 def vicsek(rng):
-    depth = rng.randint(2, 3)
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(2, 3))
     saltire = rng.random() < 0.5
     out = []
 
@@ -113,7 +148,7 @@ def vicsek(rng):
 
 
 def koch(rng):
-    depth = rng.randint(2, 4)
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(2, 4))
     sides = rng.choice([3, 4, 6])
 
     def seg(p, q, d):
@@ -141,7 +176,7 @@ def koch(rng):
 
 
 def mandala(rng):
-    petals = rng.choice([6, 8, 10, 12, 16])
+    petals = _pick(rng, "of %s petals", lambda: rng.choice([6, 8, 10, 12, 16]))
     rings = rng.randint(3, 6)
     inner, outer_r = rng.choice([(0.40, 0.10), (0.34, 0.12), (0.46, 0.08)])
     out = []
@@ -161,7 +196,7 @@ def mandala(rng):
 def nested_polygons(rng):
     """Nested regular polygons, each rotated a step on from the last."""
     depth = rng.randint(4, 8)
-    sides = rng.choice([3, 4, 5, 6, 8])
+    sides = _pick(rng, "of %s sides", lambda: rng.choice([3, 4, 5, 6, 8]))
     step = rng.choice([8, 12, 15, 18, 24])
     out = []
     R = 54.0
@@ -173,7 +208,7 @@ def nested_polygons(rng):
 
 
 def h_tree(rng):
-    depth = rng.randint(3, 5)
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(3, 5))
     out = []
 
     def rec(x, y, w, h, d):
@@ -194,7 +229,7 @@ def h_tree(rng):
 
 
 def cantor_bars(rng):
-    depth = rng.randint(3, 5)
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(3, 5))
     rows = []
 
     def rec(x, w, d):
@@ -216,7 +251,7 @@ def cantor_bars(rng):
 
 def flower_of_life(rng):
     """Overlapping circles on a hex lattice, drawn as outlines."""
-    rings = rng.randint(2, 3)
+    rings = _pick(rng, "of %s rings", lambda: rng.randint(2, 3))
     r = rng.choice([13.0, 16.0, 19.0])
     out = []
     for q in range(-rings, rings + 1):
@@ -231,7 +266,7 @@ def flower_of_life(rng):
 
 
 def recursive_circles(rng):
-    depth = rng.randint(3, 4)
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(3, 4))
     kids = rng.choice([3, 4, 5, 6])
     out = []
 
@@ -253,7 +288,7 @@ def recursive_circles(rng):
 # --- geometric -------------------------------------------------------------
 
 def concentric(rng):
-    rings = rng.randint(5, 9)
+    rings = _pick(rng, "of %s", lambda: rng.randint(5, 9))
     thin = rng.choice([0.90, 0.92, 0.94])
     out = []
     R = 55.0
@@ -264,7 +299,7 @@ def concentric(rng):
 
 
 def spokes(rng):
-    count = rng.choice([8, 12, 16, 20, 24])
+    count = _pick(rng, "of %s", lambda: rng.choice([8, 12, 16, 20, 24]))
     off = rng.random() * 2 * math.pi / count
     out = []
     R = W + H
@@ -278,7 +313,7 @@ def spokes(rng):
 
 
 def triangles(rng):
-    cols = rng.randint(4, 8)
+    cols = _pick(rng, "of %s columns", lambda: rng.randint(4, 8))
     w = W / cols
     h = w * rng.choice([0.82, 0.92, 1.05])
     out = []
@@ -295,7 +330,7 @@ def triangles(rng):
 
 
 def nested_squares(rng):
-    depth = rng.randint(4, 8)
+    depth = _pick(rng, "of %s", lambda: rng.randint(4, 8))
     step = rng.choice([0, 10, 15, 22])
     out = []
     R = 50.0
@@ -307,7 +342,7 @@ def nested_squares(rng):
 
 
 def hex_grid(rng):
-    r = rng.choice([9.0, 11.0, 13.0])
+    r = _pick(rng, "at %d-unit spacing", lambda: rng.choice([9.0, 11.0, 13.0]))
     out = []
     dy = r * math.sqrt(3)
     rows = int(H / dy) + 3
@@ -324,7 +359,7 @@ def hex_grid(rng):
 
 def star_polygon(rng):
     """A {n/k} star: n points, every k-th joined. Pentagram and up."""
-    n = rng.choice([5, 7, 8, 9, 11])
+    n = _pick(rng, "of %s points", lambda: rng.choice([5, 7, 8, 9, 11]))
     k = 2 if n < 7 else rng.choice([2, 3])
     pts = _regular(n, 50.0, rot=-90, squash=1.05)
     order = [pts[(i * k) % n] for i in range(n)]
@@ -334,7 +369,7 @@ def star_polygon(rng):
 
 def lattice(rng):
     """Diagonal bars, in one direction or crossed."""
-    spacing = rng.choice([9.0, 12.0, 15.0])
+    spacing = _pick(rng, "at %d-unit spacing", lambda: rng.choice([9.0, 12.0, 15.0]))
     thick = spacing * rng.choice([0.22, 0.30, 0.38])
     both = rng.random() < 0.5
     out = []
@@ -352,7 +387,7 @@ def lattice(rng):
 
 
 def square_grid(rng):
-    cols = rng.randint(4, 9)
+    cols = _pick(rng, "of %s columns", lambda: rng.randint(4, 9))
     mode = rng.choice(["check", "outline", "dots"])
     out = []
     s = W / cols
@@ -376,7 +411,7 @@ def square_grid(rng):
 
 def sunburst(rng):
     """Rays from the centre, with an optional ring around them."""
-    rays = rng.choice([12, 16, 20, 24])
+    rays = _pick(rng, "of %s rays", lambda: rng.choice([12, 16, 20, 24]))
     disc = rng.random() < 0.6
     out = []
     R = W + H
@@ -394,7 +429,7 @@ def sunburst(rng):
 
 def moire(rng):
     """Two ring sets on slightly different centres, which interfere."""
-    n = rng.randint(6, 9)
+    n = _pick(rng, "of %s", lambda: rng.randint(6, 9))
     dx = rng.choice([6.0, 9.0, 12.0])
     out = []
     R = 60.0

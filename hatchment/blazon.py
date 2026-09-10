@@ -22,6 +22,14 @@ from . import lines, patterns
 METALS = ["or", "argent"]
 COLOURS = ["gules", "azure", "sable", "vert", "purpure"]
 
+# The stains: three further tinctures, later and rarer than the core five but
+# perfectly real, and each one multiplies every choice ever made against a
+# colour -- field, ordinary, charge, bordure and the second half of a division.
+# Held to a minority of colour rolls rather than pooled with the others,
+# because arms where a stain is as likely as gules stop reading as heraldry.
+STAINS = ["murrey", "sanguine", "tenné"]
+STAIN_CHANCE = 0.22
+
 # Petra Sancta hatching. `density` is how much ink the pattern lays down at full
 # resolution; the renderer uses it to decide what survives a downsample.
 HATCH = {
@@ -32,6 +40,13 @@ HATCH = {
     "vert": {"kind": "bend", "density": 0.34},
     "purpure": {"kind": "bend-sinister", "density": 0.34},
     "sable": {"kind": "cross", "density": 0.62},
+    # The stains are hatched as combinations, which is the convention's own
+    # answer to running out of single directions. Which combination belongs to
+    # which stain is not agreed between sources; these are distinct from each
+    # other and from the five above, which is what the convention is for.
+    "murrey": {"kind": "bend-sinister-vertical", "density": 0.52},
+    "sanguine": {"kind": "lattice", "density": 0.52},
+    "tenné": {"kind": "bend-sinister-horizontal", "density": 0.52},
 }
 
 
@@ -50,9 +65,17 @@ def is_metal(tincture):
 
 
 
+def pick_colour(rng):
+    """A colour, and now and then a stain."""
+    if rng.random() < STAIN_CHANCE:
+        return rng.choice(STAINS)
+    return rng.choice(COLOURS)
+
+
 def pick_contrasting(against, rng):
-    pool = COLOURS if is_metal(against) else METALS
-    return rng.choice(pool)
+    if is_metal(against):
+        return pick_colour(rng)
+    return rng.choice(METALS)
 
 
 # --- Vocabulary ------------------------------------------------------------
@@ -70,20 +93,25 @@ ORDINARIES = ["cross", "fess", "pale", "bend", "chevron", "saltire", "chief",
 # Only these are drawn as a band with two long edges, so only these can carry a
 # line of partition. A cross or saltire would need every arm treated, which is
 # more geometry than it is worth at this size.
-BANDED = ("fess", "pale", "bend", "chief")
+BANDED = ("fess", "pale", "bend", "bend sinister", "chief")
 
 # Variations of the field: a repeating two-tincture pattern instead of a flat
 # ground. These are the best thing in the whole vocabulary for this target --
 # they are already two-tone by definition, so nothing is lost flattening them,
 # and the repeat gives texture that hatching could never survive at this size.
+# `counts` is how many pieces the field is divided into, rolled per shield: a
+# barry of six and a barry of ten are different arms, and heraldry says so in
+# the blazon. `blazoned` marks the ones where it says so -- checky and lozengy
+# are named without a count in ordinary usage, so their count varies the
+# drawing without pretending the words changed.
 VARIATIONS = {
-    "barry": {"count": 6},        # horizontal bars
-    "paly": {"count": 6},         # vertical pales
-    "bendy": {"count": 6},        # diagonal bends
-    "checky": {"count": 6},       # checkerboard
-    "lozengy": {"count": 5},      # diamonds
-    "gyronny": {"count": 8},      # wedges radiating from the centre
-    "chevronny": {"count": 5},    # stacked chevrons
+    "barry": {"counts": (6, 8, 10), "blazoned": True},       # horizontal bars
+    "paly": {"counts": (6, 8), "blazoned": True},            # vertical pales
+    "bendy": {"counts": (6, 8, 10), "blazoned": True},       # diagonal bends
+    "checky": {"counts": (6, 8), "blazoned": False},         # checkerboard
+    "lozengy": {"counts": (5, 7), "blazoned": False},        # diamonds
+    "gyronny": {"counts": (8, 12), "blazoned": True},        # radiating wedges
+    "chevronny": {"counts": (5, 6, 8), "blazoned": True},    # stacked chevrons
 }
 
 # Furs are the third class of tincture, alongside metals and colours, and they
@@ -96,7 +124,7 @@ FURS = ["ermine", "counter-ermine", "vair"]
 # commonest thing in real heraldry that this generator was missing.
 SEME_CHARGES = ["mullet", "roundel", "lozenge", "billet", "crescent",
                 "fleur-de-lis", "annulet", "trefoil", "estoile", "bee",
-                "rose", "garb"]
+                "rose", "garb", "increscent", "orb"]
 
 # Charges are simple silhouettes. Anything with interior detail (a lion's mane,
 # a spread eagle's feathers) turns to mud below about 60 dots wide, so the
@@ -152,6 +180,11 @@ CHARGES = {
 # as a frame for a pattern rather than as arms.
 THEMES = ("cosmic", "fractal", "geometric", "medieval", "natural")
 
+# Spelled out, because a blazon counts in words: "Barry of ten", never "of 10".
+NUMBER_WORD = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+               7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
+               12: "twelve", 16: "sixteen", 20: "twenty", 24: "twenty-four"}
+
 # A few charges are grammatically plural already, so the singular article has to
 # be attached to something else: a stag has attires, never "an attires".
 BLAZON_NAME = {"attires": "pair of attires"}
@@ -174,6 +207,7 @@ class Blazon:
         self.field = None
         self.fur = None
         self.variation = None
+        self.variation_count = 0
         self.division = None
         self.field2 = None
         self.ordinary = None
@@ -221,7 +255,7 @@ class Blazon:
         elif roll_f < 0.62:
             self.field = rng.choice(METALS)
         else:
-            self.field = rng.choice(COLOURS)
+            self.field = pick_colour(rng)
 
         # The pattern themes replace everything: the shield becomes a frame,
         # and an ordinary or a charge over a fractal is just noise on noise.
@@ -249,6 +283,7 @@ class Blazon:
         variation_chance = 0.08 if self.theme else 0.26
         if rng.random() < variation_chance:
             self.variation = rng.choice(list(VARIATIONS))
+            self.variation_count = rng.choice(VARIATIONS[self.variation]["counts"])
             self.field2 = pick_contrasting(self.field, rng)
             return self
 
@@ -313,7 +348,11 @@ class Blazon:
         # A bordure sits round the rim and touches nothing else, so unlike every
         # other addition here it can go on top of whatever was just built --
         # which is exactly why real heraldry uses it to difference arms.
-        if rng.random() < 0.20 and not self.pattern:
+        # ...unless the ordinary already is one. Rolling a bordure onto arms
+        # that have one blazons "a bordure sable, a bordure tenné" and draws
+        # two rims, one inside the other.
+        if (rng.random() < 0.20 and not self.pattern
+                and self.ordinary != "bordure"):
             self.bordure = pick_contrasting(self.field, rng)
 
         can_charge = self.charge_anchor is not None and (
@@ -387,22 +426,37 @@ class Blazon:
 
     # -- description --
 
+    def _pattern_detail(self):
+        """" of five iterations", or nothing if the figure has no such number."""
+        pool = (patterns.FRACTAL if self.theme == "fractal"
+                else patterns.GEOMETRIC)
+        detail = patterns.headline(pool, self.pattern, self.pattern_seed)
+        if not detail:
+            return ""
+        template, value = detail
+        # A template asking for %d wants the figure -- a spacing is a
+        # measurement. %s wants the word, because counts are spelled.
+        if "%d" in template:
+            return " " + template % value
+        return " " + template % NUMBER_WORD.get(value, value)
+
     def describe(self):
         """The blazon proper, in something close to heraldic word order."""
         parts = []
         if self.pattern:
             # Not a blazon -- there is no heraldic term for any of this -- so it
-            # is named plainly and the tinctures keep their proper names.
-            parts.append("%s, %s and %s" % (self.pattern.capitalize(),
-                                            self.field, self.field2))
+            # is named plainly and the tinctures keep their proper names. The
+            # figure does name its own headline parameter, though: two mandalas
+            # of different petal counts are not the same picture and should not
+            # read as the same words.
+            parts.append("%s%s, %s and %s" % (self.pattern.capitalize(),
+                                              self._pattern_detail(),
+                                              self.field, self.field2))
             return ", ".join(parts)
         if self.variation:
             # Blazon counts the pieces: "Barry of six or and azure".
-            n = {6: "six", 5: "five", 8: "eight"}.get(
-                VARIATIONS[self.variation]["count"], "")
-            of = " of %s" % n if n and self.variation not in ("gyronny",) else ""
-            if self.variation == "gyronny":
-                of = " of eight"
+            n = NUMBER_WORD.get(self.variation_count, "")
+            of = (" of %s" % n) if n and VARIATIONS[self.variation]["blazoned"] else ""
             parts.append("%s%s %s and %s" % (self.variation.capitalize(), of,
                                              self.field, self.field2))
         elif self.division:

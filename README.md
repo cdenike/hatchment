@@ -190,8 +190,18 @@ falls back to English.
 
 ## How much room there is
 
-Measured, not estimated: **120 consecutive rolls produce 117 distinct blazons**,
-with every feature class represented and none rejected by the legibility gate.
+Measured, not estimated, and measured at a scale where collisions can actually
+show up:
+
+| rolls | distinct blazons | |
+|---|---|---|
+| 120 | **120** | every one different |
+| 1,000 | **967** | 96.7% |
+| 5,000 | **4,110** | 82.2% |
+| 20,000 | **11,834** | 59.2% |
+
+Every feature class is represented and none of it costs legibility: across 200
+gated rolls, not one ended outside the ink band, which is the gate giving up.
 
 The vocabulary the roll draws from:
 
@@ -199,12 +209,38 @@ The vocabulary the roll draws from:
 |---|---|
 | Divisions | 7 — per pale, fess, bend, bend sinister, chevron, saltire, quarterly |
 | Ordinaries | 16 — including bordure, orle, canton, gyron, pile, pall, and doubled bars |
-| Variations | 7 |
+| Variations | 7, in 17 counted forms — barry of six, eight or ten, gyronny of eight or twelve |
 | Lines of partition | 6 |
 | Charges | 30, in counts of 1, 2, 3, 4 or 5, in four arrangements |
-| Semé | 12 charges strewn across the field |
-| Patterns | 20 fractal and geometric, each parameterised |
-| Tinctures | 7 plus 3 furs |
+| Semé | 14 charges strewn across the field |
+| Patterns | 20 fractal and geometric, each parameterised and each naming its parameter |
+| Tinctures | 7 plus 3 stains, plus 3 furs |
+
+Three things widened it most recently. The **stains** — murrey, sanguine and
+tenné — are later and rarer than the core five tinctures but perfectly real, and
+each one multiplies every choice ever made against a colour: field, ordinary,
+charge, bordure, and the second half of a division. They are held to a minority
+of colour rolls, because arms where a stain is as likely as gules stop reading
+as heraldry.
+
+**Variations count their pieces.** A barry of six and a barry of ten are not the
+same arms and heraldry says so in the blazon, so the count is rolled per shield
+and named — except for checky and lozengy, which ordinary usage names without a
+count, so theirs varies the drawing without pretending the words changed.
+
+**Patterns name their own parameter.** A mandala of six petals and one of
+sixteen were always different pictures; now they are different words too. The
+figure is not asked twice: the generator records what it rolled, and the blazon
+replays it from the same seed the drawing will use, so the number named is the
+number drawn rather than a second guess kept in a table. That one change did
+most of the work — the pattern themes went from 316 distinct blazons in 5,000
+rolls to 1,197 and 1,638.
+
+What was deliberately *not* added: more lines of partition. The list stops at
+six for the same reason `invected` is defined but never rolled — mirrored
+scallops are a real distinction on parchment and an invisible one at 48 dots
+across, and a vocabulary that grows without the picture changing is a longer
+list, not more arms.
 
 Two of those do most of the widening. **Semé** — a field strewn with a small
 charge repeated to the edges — multiplies by the charge list rather than adding
