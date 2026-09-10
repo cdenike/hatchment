@@ -1,4 +1,4 @@
-"""GTK4/libadwaita front end for armiger.
+"""GTK4/libadwaita front end for hatchment.
 
 The preview shows the braille art rather than the SVG on purpose: braille is
 what actually gets installed, and the two differ (the SVG keeps Petra Sancta
@@ -22,7 +22,7 @@ from . import theme
 from .cli import (FASTFETCH_LOGO, SCREENSAVER, draw_at, generate, write)
 from .draw import render
 
-APP_ID = "org.omarchy.armiger"
+APP_ID = "org.omarchy.hatchment"
 
 # Preview width. Wider than the fastfetch default so the window shows detail,
 # but each install target re-renders at its own width rather than scaling this.
@@ -121,9 +121,9 @@ def build_css(colours):
     return ("\n".join(defs) + "\n" + css).encode()
 
 
-class ArmigerWindow(Adw.ApplicationWindow):
+class HatchmentWindow(Adw.ApplicationWindow):
     def __init__(self, app):
-        super().__init__(application=app, title="Armiger")
+        super().__init__(application=app, title="Hatchment")
         self.set_default_size(560, 680)
 
         self.blazon = None
@@ -311,7 +311,7 @@ class ArmigerWindow(Adw.ApplicationWindow):
         self.toast("Saved %s" % path.name)
 
 
-class ArmigerApp(Adw.Application):
+class HatchmentApp(Adw.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID,
                          flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
@@ -320,7 +320,7 @@ class ArmigerApp(Adw.Application):
         self.provider = None
         self.apply_theme()
         self.watch_theme()
-        win = self.props.active_window or ArmigerWindow(self)
+        win = self.props.active_window or HatchmentWindow(self)
         win.present()
 
     def apply_theme(self):
@@ -385,7 +385,7 @@ class ArmigerApp(Adw.Application):
 
 
 def main():
-    return ArmigerApp().run(None)
+    return HatchmentApp().run(None)
 
 
 if __name__ == "__main__":

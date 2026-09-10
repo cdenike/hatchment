@@ -1,10 +1,10 @@
-# armiger
+# hatchment
 
 Procedural heraldry for the terminal. Rolls a random coat of arms, renders it as
 braille art, and hangs it in your fastfetch logo and your Omarchy screensaver.
 
 ```
-$ python3 -m armiger --cols 24 --seed house-03
+$ hatchment --cols 24 --seed house-03
 Per fess sable and or, a mullet or
 
 ⢰⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⡆
@@ -26,7 +26,7 @@ Per fess sable and or, a mullet or
 
 ## Why it looks like that
 
-Heraldry is a constraint system, not a pile of random shapes, so `armiger`
+Heraldry is a constraint system, not a pile of random shapes, so `hatchment`
 generates the way a herald designs: pick a field, divide it *or* lay an ordinary
 across it, then charge it — checking the **rule of tincture** at every step
 (never metal on metal, never colour on colour). That rule exists to keep arms
@@ -39,7 +39,7 @@ Three constraints fall out of the target rather than the tradition:
   divided field one metal and one colour, so an ordinary laid across it
   contrasts with exactly one half and disappears against the other. Heraldry
   answers this by counterchanging along the division; that needs more resolution
-  than a braille cell has, so `armiger` declines the combination instead.
+  than a braille cell has, so `hatchment` declines the combination instead.
 - **A centred charge never sits on a divided field.** Per pale and per bend run
   straight through the fess point and per chevron meets there, so a charge in the
   middle is half on each tincture and vanishes into one of them. Per fess and per
@@ -89,8 +89,8 @@ white, so there is nothing to lose.
 ### Themes
 
 ```bash
-armiger --theme medieval
-armiger --theme cosmic
+hatchment --theme medieval
+hatchment --theme cosmic
 ```
 
 Themes filter the charge table; they do not add a separate vocabulary, because
@@ -109,7 +109,7 @@ nothing cosmic anywhere on it.
 ## Graphical interface
 
 ```bash
-armiger-gui
+hatchment
 ```
 
 A GTK4/libadwaita window: **Randomise** to roll, then **Set fastfetch logo** or
@@ -137,7 +137,7 @@ Most of that is not this app's doing, and shouldn't be. Omarchy ships a
 `theme-set` hook that renders `~/.config/gtk-4.0/gtk.css` from the active
 theme's `colors.toml` on every change, so *every* GTK app already follows the
 theme; GTK loads that file at USER priority, above anything an application sets
-for itself. Armiger detects that stylesheet and stays out of its way — including
+for itself. Hatchment detects that stylesheet and stays out of its way — including
 leaving its deliberate alpha alone, so the window sits over the wallpaper like
 the rest of the desktop rather than punching an opaque rectangle through it.
 
@@ -162,14 +162,14 @@ Two details that cost a debugging round each, recorded so they don't again:
 ## Usage
 
 ```bash
-python3 -m armiger                          # roll and print
-python3 -m armiger --seed my-house          # reproducible arms
-python3 -m armiger --cols 32                # wider
-python3 -m armiger --simple                 # simplest charges only
-python3 -m armiger --svg arms.svg           # hatched vector export
-python3 -m armiger --fastfetch              # install as the fastfetch logo
-python3 -m armiger --screensaver            # install as screensaver branding
-python3 -m armiger --screensaver --no-reload  # ...without taking the screen
+hatchment                          # roll and print
+hatchment --seed my-house          # reproducible arms
+hatchment --cols 32                # wider
+hatchment --simple                 # simplest charges only
+hatchment --svg arms.svg           # hatched vector export
+hatchment --fastfetch              # install as the fastfetch logo
+hatchment --screensaver            # install as screensaver branding
+hatchment --screensaver --no-reload  # ...without taking the screen
 ```
 
 Every roll prints its seed, so arms you like can be recovered exactly.
@@ -197,7 +197,7 @@ screen immediately so you can see the result.
 New arms every login, if you want them — add to your shell profile:
 
 ```bash
-python3 -m armiger --fastfetch --quiet >/dev/null
+hatchment --fastfetch --quiet >/dev/null
 ```
 
 ## Legibility gate
@@ -210,6 +210,26 @@ Outside that band the shield has either collapsed to near-empty or filled in
 solid, and neither is worth installing. The measurement counts *dots*, not
 cells: a cell-based count calls any textured area full, which is exactly the
 distinction the gate exists to catch.
+
+## Install
+
+```bash
+git clone https://github.com/<you>/hatchment.git
+cd hatchment
+./install.sh
+```
+
+No root, nothing outside `$HOME`. It puts a launcher in `~/.local/bin`, the icon
+in `~/.local/share/icons/hicolor/scalable/apps`, and a desktop entry in
+`~/.local/share/applications`, then refreshes the desktop and icon caches so a
+fresh install shows up without a session restart. The launcher points at the
+checkout you installed from, so `git pull` updates the command with no reinstall.
+
+Afterwards:
+
+- **`hatchment`** opens the window
+- **`hatchment --help`** and any other argument runs the command line
+- **Hatchment** appears in your app launcher, Omarchy's menu included
 
 ## Requirements
 

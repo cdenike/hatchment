@@ -1,4 +1,4 @@
-"""armiger -- generate a random coat of arms and wear it on your desktop."""
+"""hatchment -- generate a random coat of arms and wear it on your desktop."""
 
 import argparse
 import os
@@ -75,7 +75,7 @@ def write(path, text):
 
 def main(argv=None):
     p = argparse.ArgumentParser(
-        prog="armiger",
+        prog="hatchment",
         description="Generate a random coat of arms as braille art.")
     p.add_argument("--seed", help="reproduce a specific coat of arms")
     p.add_argument("--cols", type=int, default=24,
