@@ -61,6 +61,28 @@ ordinary and charge stop separating from the field. Braille output flattens to
 two tones instead. It loses *which* colour a tincture is and keeps the shapes,
 which is the right trade when the shapes are all a 24-column shield can carry.
 
+## Graphical interface
+
+```bash
+armiger-gui
+```
+
+A GTK4/libadwaita window: **Randomise** to roll, then **Set fastfetch logo** or
+**Set screensaver** to install the arms in front of you. **Export SVG…** saves
+the hatched vector. Type a seed to reproduce arms you liked, and setting the
+screensaver only takes over the screen if you tick the box.
+
+It ships a desktop entry, so it also shows up in the app launcher.
+
+Two things worth knowing about the preview:
+
+- It shows the **braille**, not the SVG. The two genuinely differ — the SVG keeps
+  its hatching, the braille flattens to two tones — and previewing the prettier
+  one would be a promise the install cannot keep.
+- Braille looks **dottier in the window than in your terminal**. Terminals
+  synthesise braille cells as solid blocks; GTK draws the font's actual dot
+  glyphs. Same characters, same file, different rasteriser.
+
 ## Usage
 
 ```bash
