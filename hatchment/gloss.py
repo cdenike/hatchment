@@ -125,6 +125,15 @@ def plain(blazon, table=None):
 
     parts = []
 
+    pattern = getattr(blazon, "pattern", None)
+    if pattern:
+        # Pattern themes have no heraldic reading, so the gloss just names the
+        # figure and its two tinctures. The blazon line above is already plain
+        # English here; this restates it as a phrase rather than a label.
+        return "%s in %s and %s" % (pattern.capitalize(),
+                                    colour(blazon.field),
+                                    colour(blazon.field2))
+
     if blazon.variation:
         parts.append(t["variation"][blazon.variation].format(
             a=colour(blazon.field), b=colour(blazon.field2)))

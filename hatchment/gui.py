@@ -181,7 +181,7 @@ class HatchmentWindow(Adw.ApplicationWindow):
         theme_label.set_xalign(0)
         theme_row.append(theme_label)
         self.theme_drop = Gtk.DropDown.new_from_strings(
-            ["Both", "Medieval", "Cosmic"])
+            ["Both", "Medieval", "Cosmic", "Fractal", "Geometric"])
         self.theme_drop.set_hexpand(True)
         # Re-roll on change so the choice shows itself immediately rather than
         # waiting for the next press of Randomise.
@@ -217,8 +217,12 @@ class HatchmentWindow(Adw.ApplicationWindow):
         actions.append(self.ss_btn)
 
         self.svg_btn = Gtk.Button(label="Export SVG…")
-        self.svg_btn.connect("clicked", self.on_export)
+        self.svg_btn.connect("clicked", self.on_export, "svg")
         actions.append(self.svg_btn)
+
+        self.png_btn = Gtk.Button(label="Export PNG…")
+        self.png_btn.connect("clicked", self.on_export, "png")
+        actions.append(self.png_btn)
         box.append(actions)
 
         # Installing screensaver branding can either write quietly or take over
@@ -241,7 +245,8 @@ class HatchmentWindow(Adw.ApplicationWindow):
 
     def set_busy(self, busy):
         self.busy = busy
-        for b in (self.roll_btn, self.ff_btn, self.ss_btn, self.svg_btn):
+        for b in (self.roll_btn, self.ff_btn, self.ss_btn, self.svg_btn,
+                  self.png_btn):
             b.set_sensitive(not busy)
         self.roll_btn.set_label("Rolling…" if busy else "Randomise")
 
@@ -256,7 +261,8 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.set_busy(True)
         seed = seed or os.urandom(8).hex()
 
-        theme = (None, "medieval", "cosmic")[self.theme_drop.get_selected()]
+        theme = (None, "medieval", "cosmic", "fractal",
+                 "geometric")[self.theme_drop.get_selected()]
 
         def work():
             try:
@@ -302,23 +308,49 @@ class HatchmentWindow(Adw.ApplicationWindow):
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                            check=False)
 
-    def on_export(self, _btn):
+    def on_export(self, _btn, fmt="svg"):
+        """Save the arms as vector or raster.
+
+        Both export the *hatched* drawing rather than the braille: at file
+        resolution there are pixels enough for Petra Sancta tinctures, so an
+        exported coat of arms says which colour each tincture is, which the
+        two-tone braille cannot.
+        """
         if not self.blazon:
             return
         dialog = Gtk.FileDialog()
-        dialog.set_initial_name("arms.svg")
-        dialog.save(self, None, self._on_export_done)
+        dialog.set_initial_name("arms.%s" % fmt)
+        # The button chosen decides the format, so the callback is told which
+        # one rather than guessing from whatever the user types in the box.
+        dialog.save(self, None, lambda d, r: self._on_export_done(d, r, fmt))
 
-    def _on_export_done(self, dialog, result):
+    def _on_export_done(self, dialog, result, fmt):
         try:
             gfile = dialog.save_finish(result)
         except GLib.Error:
             return  # cancelled
         if not gfile:
             return
+
         path = pathlib.Path(gfile.get_path())
-        path.write_text(render(self.blazon, spacing=5.0, stroke=1.1,
-                               solid=False, size=900))
+        # Writing SVG bytes into a name ending .png would be a file that lies
+        # about itself, so the extension is made to match what was written.
+        if path.suffix.lower() != "." + fmt:
+            path = path.with_suffix("." + fmt)
+
+        svg = render(self.blazon, spacing=5.0, stroke=1.1, solid=False, size=900)
+        if fmt == "svg":
+            path.write_text(svg)
+        else:
+            try:
+                png = subprocess.run(
+                    ["rsvg-convert", "-w", "1024", "--background-color", "white",
+                     "-f", "png"],
+                    input=svg.encode(), capture_output=True, check=True).stdout
+            except (OSError, subprocess.CalledProcessError) as exc:
+                self.toast("Could not write PNG: %s" % exc)
+                return
+            path.write_bytes(png)
         self.toast("Saved %s" % path.name)
 
 

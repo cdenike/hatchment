@@ -547,7 +547,11 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
     # Field, then the second half if the arms are divided.
     out.append(f'<rect x="0" y="0" width="{w}" height="{h}" '
                f'fill="{_fill(blazon.field, solid)}"/>')
-    if blazon.variation:
+    if getattr(blazon, "pattern", None):
+        from . import patterns as _pat
+        shapes = "".join(_pat.shapes(blazon.pattern))
+        out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
+    elif blazon.variation:
         from .blazon import VARIATIONS
         count = VARIATIONS[blazon.variation]["count"]
         shapes = _variation_shapes(blazon.variation, count, w, h)

@@ -15,10 +15,11 @@ from .render import to_braille
 FASTFETCH_LOGO = pathlib.Path.home() / ".config/fastfetch/coat-of-arms.txt"
 SCREENSAVER = pathlib.Path.home() / ".config/omarchy/branding/screensaver.txt"
 
-# Width of the fastfetch logo. Wide enough that the shield reads as the focus of
-# the header rather than a stamp beside it, and wide enough to clear the
-# complexity threshold so beasts can appear there too.
-FASTFETCH_COLS = 30
+# Width of the fastfetch logo, chosen to match the logo Omarchy ships: its
+# about.txt is 26 rows by 45 columns, and the shield's 100x115 box lands at
+# roughly 45x27 from 44 columns. Also comfortably past the complexity
+# threshold, so beasts can appear here.
+FASTFETCH_COLS = 44
 
 # Ink outside this band means the art has collapsed: a near-empty shield, or a
 # near-solid one where the tinctures have run together. Re-roll rather than
@@ -103,7 +104,8 @@ def main(argv=None):
                    help="width in terminal columns (default: 24)")
     p.add_argument("--simple", action="store_true",
                    help="restrict to the simplest charges")
-    p.add_argument("--theme", choices=("medieval", "cosmic"),
+    p.add_argument("--theme",
+                   choices=("medieval", "cosmic", "fractal", "geometric"),
                    help="draw charges from one register only "
                         "(default: both)")
     p.add_argument("--fastfetch", action="store_true",

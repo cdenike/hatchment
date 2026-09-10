@@ -12,7 +12,7 @@ thing a braille cell can say.
 
 import random
 
-from . import lines
+from . import lines, patterns
 
 # --- Tinctures -------------------------------------------------------------
 
@@ -138,7 +138,9 @@ CHARGES = {
     "orb": {"complexity": 3, "themes": {"cosmic"}},
 }
 
-THEMES = ("medieval", "cosmic")
+# The last two are not heraldry and do not pretend to be: they treat the shield
+# as a frame for a pattern rather than as arms.
+THEMES = ("medieval", "cosmic", "fractal", "geometric")
 
 
 class Blazon:
@@ -160,6 +162,7 @@ class Blazon:
         self.charge_count = 0
         self.charge_anchor = "centre"
         self.line_style = "plain"
+        self.pattern = None
 
     def _charge_pool(self, max_complexity):
         pool = []
@@ -181,6 +184,15 @@ class Blazon:
         # built, for the same legibility reason at a different distance.
         self.field = (rng.choice(METALS) if rng.random() < 0.62
                       else rng.choice(COLOURS))
+
+        # The pattern themes replace everything: the shield becomes a frame,
+        # and an ordinary or a charge over a fractal is just noise on noise.
+        if self.theme in ("fractal", "geometric"):
+            pool = (patterns.FRACTAL if self.theme == "fractal"
+                    else patterns.GEOMETRIC)
+            self.pattern = rng.choice(sorted(pool))
+            self.field2 = pick_contrasting(self.field, rng)
+            return self
 
         # A variation replaces the flat ground with a repeating two-tincture
         # pattern. It takes nothing else: the pattern alternates metal and
@@ -314,6 +326,12 @@ class Blazon:
     def describe(self):
         """The blazon proper, in something close to heraldic word order."""
         parts = []
+        if self.pattern:
+            # Not a blazon -- there is no heraldic term for any of this -- so it
+            # is named plainly and the tinctures keep their proper names.
+            parts.append("%s, %s and %s" % (self.pattern.capitalize(),
+                                            self.field, self.field2))
+            return ", ".join(parts)
         if self.variation:
             # Blazon counts the pieces: "Barry of six or and azure".
             n = {6: "six", 5: "five", 8: "eight"}.get(

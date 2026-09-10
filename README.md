@@ -97,9 +97,23 @@ Themes filter the charge table; they do not add a separate vocabulary, because
 heraldry already had both registers.
 
 - **Medieval** — tower, sword, key, crown, portcullis, chalice, fleur-de-lis,
-  billet
+  billet, banner, and rearing lion and horse
 - **Cosmic** — sun in splendour, estoile, comet, increscent, orb, mullet,
-  crescent, annulet
+  crescent, annulet, eagle
+- **Fractal** — Sierpinski gasket, mandala, nested lozenges, Koch snowflake
+- **Geometric** — concentric rings, compass spokes, triangular tessellation,
+  nested squares
+
+The last two are **not heraldry and do not pretend to be** — no herald ever
+blazoned a Sierpinski gasket. They treat the shield as a frame for a pattern,
+and take nothing else: an ordinary or a charge over a fractal is noise on noise.
+Recursion depth is capped low, because at 50-110 dots across a fourth or fifth
+subdivision stops being a pattern and turns grey.
+
+Every one of them is tuned to clear the legibility gate. Three did not at first
+(`concentric rings`, `nested lozenges`, `nested squares`) and would simply never
+have appeared: filling alternate rings puts over half the shield under ink. They
+are outlines now, with only the innermost shape solid.
 
 Choosing a theme also changes the *shape* of the arms, not just the charges: a
 themed roll keeps variations rare and favours arrangements that can carry a
