@@ -9,10 +9,16 @@ import sys
 
 from .blazon import Blazon
 from .draw import render
+from .gloss import plain
 from .render import to_braille
 
 FASTFETCH_LOGO = pathlib.Path.home() / ".config/fastfetch/coat-of-arms.txt"
 SCREENSAVER = pathlib.Path.home() / ".config/omarchy/branding/screensaver.txt"
+
+# Width of the fastfetch logo. Wide enough that the shield reads as the focus of
+# the header rather than a stamp beside it, and wide enough to clear the
+# complexity threshold so beasts can appear there too.
+FASTFETCH_COLS = 30
 
 # Ink outside this band means the art has collapsed: a near-empty shield, or a
 # near-solid one where the tinctures have run together. Re-roll rather than
@@ -54,8 +60,23 @@ def draw_at(blazon, cols):
     return to_braille(render(blazon, solid=True), cols)
 
 
-def generate(rng, cols, max_complexity=3, attempts=60, theme=None):
+def complexity_for(cols):
+    """How much charge detail the target width can actually hold.
+
+    A lion or a horse needs roughly 50 dots across before it stops reading as a
+    blot, which is 26 columns. Below that the generator is restricted to shapes
+    whose silhouette survives -- stars, crescents, towers -- rather than being
+    allowed to pick a beast and produce mush.
+    """
+    if cols >= 26:
+        return 4
+    return 3
+
+
+def generate(rng, cols, max_complexity=None, attempts=60, theme=None):
     """Roll arms until one renders legibly at `cols` wide."""
+    if max_complexity is None:
+        max_complexity = complexity_for(cols)
     last = None
     for _ in range(attempts):
         blazon = Blazon(rng, theme=theme).generate(max_complexity=max_complexity)
@@ -106,6 +127,9 @@ def main(argv=None):
 
     if not args.quiet:
         print(blazon.describe())
+        gloss = plain(blazon)
+        if gloss:
+            print('\u201c%s\u201d' % gloss)
         print("seed: %s" % seed)
         print()
     print(art)
@@ -118,7 +142,7 @@ def main(argv=None):
             render(blazon, spacing=5.0, stroke=1.1, solid=False, size=900))
 
     if args.fastfetch:
-        write(FASTFETCH_LOGO, art)
+        write(FASTFETCH_LOGO, draw_at(blazon, FASTFETCH_COLS))
         if not args.quiet:
             print("\n-> %s" % FASTFETCH_LOGO, file=sys.stderr)
 

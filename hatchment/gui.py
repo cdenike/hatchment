@@ -19,7 +19,9 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from . import theme
-from .cli import (FASTFETCH_LOGO, SCREENSAVER, draw_at, generate, write)
+from .gloss import plain
+from .cli import (FASTFETCH_COLS, FASTFETCH_LOGO, SCREENSAVER,
+                  draw_at, generate, write)
 from .draw import render
 
 APP_ID = "org.omarchy.hatchment"
@@ -41,6 +43,7 @@ BASE_CSS = """
   padding: 12px;
 }
 .blazon { font-size: 15px; font-weight: 600; }
+.gloss { font-size: 12px; opacity: 0.72; font-style: italic; }
 .seed { font-family: monospace; opacity: 0.6; font-size: 11px; }
 """
 
@@ -161,6 +164,12 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.blazon_label.set_justify(Gtk.Justification.CENTER)
         box.append(self.blazon_label)
 
+        self.gloss_label = Gtk.Label(label="")
+        self.gloss_label.add_css_class("gloss")
+        self.gloss_label.set_wrap(True)
+        self.gloss_label.set_justify(Gtk.Justification.CENTER)
+        box.append(self.gloss_label)
+
         self.seed_label = Gtk.Label(label="")
         self.seed_label.add_css_class("seed")
         self.seed_label.set_selectable(True)
@@ -263,6 +272,8 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.blazon = blazon
         self.art.set_text(art)
         self.blazon_label.set_text(blazon.describe())
+        gloss = plain(blazon)
+        self.gloss_label.set_text('\u201c%s\u201d' % gloss if gloss else "")
         self.seed_label.set_text("seed: %s" % seed)
         self.seed_entry.set_text("")
         self.set_busy(False)
@@ -278,7 +289,7 @@ class HatchmentWindow(Adw.ApplicationWindow):
             return
         # Re-rendered at the fastfetch width rather than reusing the preview:
         # the sidebar is narrower, and scaling braille art is not a thing.
-        write(FASTFETCH_LOGO, draw_at(self.blazon, 22))
+        write(FASTFETCH_LOGO, draw_at(self.blazon, FASTFETCH_COLS))
         self.toast("Set as fastfetch logo")
 
     def on_screensaver(self, _btn):

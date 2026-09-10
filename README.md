@@ -106,6 +106,45 @@ themed roll keeps variations rare and favours arrangements that can carry a
 charge. Otherwise picking "cosmic" would happily hand you a barry field with
 nothing cosmic anywhere on it.
 
+### Lines of partition
+
+Every division and every band can be cut with a shaped edge instead of a
+straight one — **wavy**, **engrailed**, **indented**, **dancetty**,
+**embattled**, **nebuly**. This is the cheapest variety in the whole system:
+six edge treatments multiplying every division and every band, before a charge
+is placed.
+
+Amplitudes are deliberately larger than a herald would draw. At 24 columns the
+shield is 48 dots across, so a wave one unit deep is half a dot and simply
+disappears; these are sized to survive being thresholded to 1-bit, not to look
+correct on parchment. A cross or a saltire stays straight — styling every arm
+is more geometry than it earns at this size.
+
+### Beasts and banners
+
+`lion` and `horse` rearing, `eagle` displayed, and a `banner` whose fly ripples.
+These are complexity 4, which means they only appear at **26 columns or wider**:
+below roughly 50 dots across a beast stops reading as an animal and becomes a
+blot, so the generator is restricted to shapes whose silhouette survives —
+stars, crescents, towers — rather than being allowed to pick a lion and produce
+mush. The fastfetch logo renders at 30 columns, so they show up there.
+
+## Plain language
+
+The blazon is technical Norman-French word order. Under it, in quotes, the same
+arms as an ordinary sentence:
+
+```
+Per pale nebuly vert and argent, a sun in splendour or
+"Green on the left, silver on the right along a cloud-shaped edge, with a gold sun"
+```
+
+The language follows the user's locale (`LC_ALL`, `LC_MESSAGES`, then `LANG`).
+Only English ships. The glossary is one table per language, so adding one is
+data rather than code — but shipping translations that cannot be checked would
+be worse than shipping none, so `LANGS` has a single entry and everything else
+falls back to English.
+
 ## Graphical interface
 
 ```bash

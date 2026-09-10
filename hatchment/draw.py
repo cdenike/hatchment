@@ -157,6 +157,70 @@ def _variation_shapes(name, count, w, h):
     return "".join(out)
 
 
+
+def _division_polygon(name, style, w, h):
+    """The second tincture's region, with the dividing edge in `style`.
+
+    Built as a polygon that overruns the shield box on every side except the
+    dividing edge itself, so the clip decides the outline and only the cut has
+    to be right.
+    """
+    from . import lines
+    if name == "per pale":
+        edge = lines.points((w / 2, -6), (w / 2, h + 6), style)
+        return edge + [(w + 6, h + 6), (w + 6, -6)]
+    if name == "per fess":
+        y = h * 0.47
+        edge = lines.points((-6, y), (w + 6, y), style)
+        return edge + [(w + 6, h + 6), (-6, h + 6)]
+    if name == "per bend":
+        edge = lines.points((0, -6), (w, h), style)
+        return edge + [(-6, h + 6)]
+    if name == "per chevron":
+        apex = (w / 2, h * 0.42)
+        left = lines.points((-6, h + 6), apex, style)
+        right = lines.points(apex, (w + 6, h + 6), style)
+        return left + right[1:] + [(w + 6, -6), (-6, -6)]
+    return []
+
+
+def _banded_ordinary(name, style, w, h):
+    """Ordinaries whose two long edges can carry a line of partition.
+
+    The edges are generated in opposite directions and the second is reversed,
+    so the polygon closes as a band rather than crossing itself. Amplitude is
+    halved: a wave as deep as a straight-edged fess would eat the band.
+    """
+    from . import lines
+    sc = 0.55
+    if name == "fess":
+        a, b = h * 0.36, h * 0.58
+        top = lines.points((-6, a), (w + 6, a), style, scale=sc)
+        bot = lines.points((-6, b), (w + 6, b), style, scale=sc, phase=0.5)
+        return top + list(reversed(bot))
+    if name == "pale":
+        a, b = w * 0.37, w * 0.63
+        left = lines.points((a, -6), (a, h + 6), style, scale=sc)
+        right = lines.points((b, -6), (b, h + 6), style, scale=sc, phase=0.5)
+        return left + list(reversed(right))
+    if name == "chief":
+        y = h * 0.26
+        edge = lines.points((-6, y), (w + 6, y), style, scale=sc)
+        return edge + [(w + 6, -6), (-6, -6)]
+    if name == "bend":
+        # Two parallel diagonals, offset perpendicular to the run.
+        import math
+        p0, p1 = (-8, 6), (w + 8, h * 0.82)
+        dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+        L = math.hypot(dx, dy)
+        nx, ny = -dy / L * 24, dx / L * 24
+        a = lines.points(p0, p1, style, scale=sc)
+        b = lines.points((p0[0] + nx, p0[1] + ny), (p1[0] + nx, p1[1] + ny),
+                         style, scale=sc, phase=0.5)
+        return a + list(reversed(b))
+    return []
+
+
 def _fill(tincture, solid):
     """How to paint one tincture.
 
@@ -221,6 +285,85 @@ def _charge_path(name, cx, cy, r):
                 f'C {cx - r * 0.16} {cy - r * 0.25} {cx - r * 0.30} {cy - r * 0.45} {cx} {cy - r} Z"/>'
                 f'<rect x="{cx - r * 0.62}" y="{cy + r * 0.52}" '
                 f'width="{r * 1.24}" height="{r * 0.22}"/>')
+
+    if name == "banner":
+        # A staff with a flag whose fly ripples. The ripple is the point: it is
+        # the one charge here that is supposed to look like cloth.
+        return (f'<rect x="{cx - r * 0.86}" y="{cy - r}" '
+                f'width="{r * 0.16}" height="{r * 2.0}"/>'
+                f'<path d="M {cx - r * 0.70} {cy - r * 0.92} '
+                f'L {cx + r * 0.92} {cy - r * 0.62} '
+                f'Q {cx + r * 0.50} {cy - r * 0.20} {cx + r * 0.92} {cy + r * 0.22} '
+                f'L {cx - r * 0.70} {cy - r * 0.08} Z"/>'
+                f'<circle cx="{cx - r * 0.78}" cy="{cy - r * 1.06}" r="{r * 0.15}"/>')
+
+    if name == "lion":
+        # Lion rampant: rearing, facing dexter, tail over the back. Blocky on
+        # purpose -- a lion with real mane detail is a smudge at 40 dots.
+        return (f'<path d="'
+                f'M {cx - r * 0.72} {cy + r * 0.98} '
+                f'L {cx - r * 0.30} {cy + r * 0.98} '
+                f'L {cx - r * 0.22} {cy + r * 0.30} '
+                f'L {cx + r * 0.12} {cy + r * 0.40} '
+                f'L {cx + r * 0.20} {cy + r * 0.98} '
+                f'L {cx + r * 0.60} {cy + r * 0.98} '
+                f'L {cx + r * 0.50} {cy + r * 0.10} '
+                f'L {cx + r * 0.62} {cy - r * 0.30} '
+                f'L {cx + r * 0.30} {cy - r * 0.44} '
+                f'L {cx + r * 0.10} {cy - r * 0.86} '
+                f'L {cx - r * 0.24} {cy - r * 0.96} '
+                f'L {cx - r * 0.52} {cy - r * 0.70} '
+                f'L {cx - r * 0.40} {cy - r * 0.34} '
+                f'L {cx - r * 0.66} {cy - r * 0.10} '
+                f'L {cx - r * 0.86} {cy - r * 0.52} '
+                f'L {cx - r * 0.98} {cy - r * 0.18} '
+                f'L {cx - r * 0.74} {cy + r * 0.34} Z"/>')
+
+    if name == "horse":
+        # Horse forcene: rearing, forelegs up, head to dexter.
+        return (f'<path d="'
+                f'M {cx - r * 0.86} {cy - r * 0.56} '
+                f'L {cx - r * 0.50} {cy - r * 0.76} '
+                f'L {cx - r * 0.30} {cy - r * 0.52} '
+                f'L {cx + r * 0.06} {cy - r * 0.40} '
+                f'L {cx + r * 0.34} {cy - r * 0.66} '
+                f'L {cx + r * 0.52} {cy - r * 0.34} '
+                f'L {cx + r * 0.44} {cy + r * 0.16} '
+                f'L {cx + r * 0.66} {cy + r * 0.98} '
+                f'L {cx + r * 0.30} {cy + r * 0.98} '
+                f'L {cx + r * 0.14} {cy + r * 0.36} '
+                f'L {cx - r * 0.16} {cy + r * 0.30} '
+                f'L {cx - r * 0.26} {cy + r * 0.98} '
+                f'L {cx - r * 0.60} {cy + r * 0.98} '
+                f'L {cx - r * 0.50} {cy + r * 0.10} '
+                f'L {cx - r * 0.62} {cy - r * 0.26} Z"/>')
+
+    if name == "eagle":
+        # Eagle displayed: wings spread, head to dexter, tail below. Symmetric
+        # except the head, which is what stops it reading as a bat.
+        return (f'<path d="'
+                f'M {cx} {cy - r * 0.30} '
+                f'L {cx - r * 0.34} {cy - r * 0.52} '
+                f'L {cx - r * 0.96} {cy - r * 0.72} '
+                f'L {cx - r * 0.72} {cy - r * 0.10} '
+                f'L {cx - r * 0.90} {cy + r * 0.30} '
+                f'L {cx - r * 0.34} {cy + r * 0.10} '
+                f'L {cx - r * 0.18} {cy + r * 0.52} '
+                f'L {cx - r * 0.34} {cy + r * 0.96} '
+                f'L {cx} {cy + r * 0.72} '
+                f'L {cx + r * 0.34} {cy + r * 0.96} '
+                f'L {cx + r * 0.18} {cy + r * 0.52} '
+                f'L {cx + r * 0.34} {cy + r * 0.10} '
+                f'L {cx + r * 0.90} {cy + r * 0.30} '
+                f'L {cx + r * 0.72} {cy - r * 0.10} '
+                f'L {cx + r * 0.96} {cy - r * 0.72} '
+                f'L {cx + r * 0.34} {cy - r * 0.52} Z"/>'
+                f'<path d="M {cx - r * 0.16} {cy - r * 0.46} '
+                f'L {cx - r * 0.16} {cy - r * 0.86} '
+                f'L {cx - r * 0.62} {cy - r * 0.96} '
+                f'L {cx - r * 0.20} {cy - r * 1.02} '
+                f'L {cx + r * 0.16} {cy - r * 0.84} '
+                f'L {cx + r * 0.16} {cy - r * 0.46} Z"/>')
 
     if name == "annulet":
         return (f'<path fill-rule="evenodd" d="'
@@ -410,16 +553,20 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512):
         shapes = _variation_shapes(blazon.variation, count, w, h)
         out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
     elif blazon.division:
-        from .blazon import DIVISIONS
-        poly = DIVISIONS[blazon.division][1]
-        scaled = [(x, y * h / 100.0) for x, y in poly]
-        out.append(f'<polygon points="{_poly(scaled)}" '
+        style = getattr(blazon, "line_style", "plain")
+        poly = _division_polygon(blazon.division, style, w, h)
+        out.append(f'<polygon points="{_poly(poly)}" '
                    f'fill="{_fill(blazon.field2, solid)}"/>')
 
     # The ordinary, outlined so it stays distinct where its hatching is close to
     # the field's.
     if blazon.ordinary:
-        shape = _ordinary_shape(blazon.ordinary)
+        style = getattr(blazon, "line_style", "plain")
+        banded = _banded_ordinary(blazon.ordinary, style, w, h) if style != "plain" else []
+        if banded:
+            shape = f'<polygon points="{_poly(banded)}"/>'
+        else:
+            shape = _ordinary_shape(blazon.ordinary)
         out.append(f'<g fill="{_fill(blazon.ordinary_tincture, solid)}" '
                    f'stroke="#000" stroke-width="1.2">{shape}</g>')
 

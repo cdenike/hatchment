@@ -12,6 +12,8 @@ thing a braille cell can say.
 
 import random
 
+from . import lines
+
 # --- Tinctures -------------------------------------------------------------
 
 # Heraldry splits tinctures into metals and colours. The rule of tincture says
@@ -74,6 +76,11 @@ DIVISIONS = {
 # resolution, so the generator leans on them heavily.
 ORDINARIES = ["cross", "fess", "pale", "bend", "chevron", "saltire", "chief"]
 
+# Only these are drawn as a band with two long edges, so only these can carry a
+# line of partition. A cross or saltire would need every arm treated, which is
+# more geometry than it is worth at this size.
+BANDED = ("fess", "pale", "bend", "chief")
+
 # Variations of the field: a repeating two-tincture pattern instead of a flat
 # ground. These are the best thing in the whole vocabulary for this target --
 # they are already two-tone by definition, so nothing is lost flattening them,
@@ -116,6 +123,10 @@ CHARGES = {
     "crown": {"complexity": 3, "themes": {"medieval"}},
     "portcullis": {"complexity": 3, "themes": {"medieval"}},
     "chalice": {"complexity": 3, "themes": {"medieval"}},
+    "banner": {"complexity": 3, "themes": {"medieval"}},
+    "lion": {"complexity": 4, "themes": {"medieval"}},
+    "horse": {"complexity": 4, "themes": {"medieval"}},
+    "eagle": {"complexity": 4, "themes": {"medieval", "cosmic"}},
 
     # Cosmic.
     "mullet": {"complexity": 1, "themes": {"cosmic", "medieval"}},
@@ -148,6 +159,7 @@ class Blazon:
         self.charge_tincture = None
         self.charge_count = 0
         self.charge_anchor = "centre"
+        self.line_style = "plain"
 
     def _charge_pool(self, max_complexity):
         pool = []
@@ -248,6 +260,10 @@ class Blazon:
         rng = self.rng
         self.division = rng.choice(list(DIVISIONS))
         self.field2 = pick_contrasting(self.field, rng)
+        # A line of partition costs nothing and changes the whole silhouette of
+        # the cut, so it is worth rolling often.
+        if rng.random() < 0.55:
+            self.line_style = rng.choice(lines.POOL)
 
     # A division and an ordinary of the same geometry restate each other: a
     # chevron laid on a per-chevron field reads as one thick chevron with a
@@ -262,6 +278,8 @@ class Blazon:
         if echo in pool:
             pool.remove(echo)
         self.ordinary = rng.choice(pool)
+        if self.ordinary in BANDED and rng.random() < 0.55:
+            self.line_style = rng.choice(lines.POOL)
         # An ordinary sits on the field, so it must contrast with it. On divided
         # arms it crosses both halves; contrast against the first is the
         # convention and keeps at least one edge readable.
@@ -306,14 +324,19 @@ class Blazon:
             parts.append("%s%s %s and %s" % (self.variation.capitalize(), of,
                                              self.field, self.field2))
         elif self.division:
-            parts.append("%s %s and %s" % (self.division.capitalize(),
-                                           self.field, self.field2))
+            # The line style follows the division and precedes the tinctures:
+            # "Per fess wavy argent and gules".
+            style = "" if self.line_style == "plain" else " " + self.line_style
+            parts.append("%s%s %s and %s" % (self.division.capitalize(), style,
+                                             self.field, self.field2))
         else:
             parts.append(self.field.capitalize())
 
         if self.ordinary:
-            article = "a" if self.ordinary != "chief" else "a"
-            parts.append("%s %s %s" % (article, self.ordinary, self.ordinary_tincture))
+            style = ("" if self.line_style == "plain" or
+                     self.ordinary not in BANDED else " " + self.line_style)
+            parts.append("a %s%s %s" % (self.ordinary, style,
+                                        self.ordinary_tincture))
 
         if self.charge:
             if self.charge_count == 1:
