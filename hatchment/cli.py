@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 from . import fastfetch, menuicon, prompt, screensaver, stock
-from .blazon import Blazon
+from .blazon import THEMES, Blazon, new_seed, vocabulary_for
 from .draw import render
 from .gloss import plain
 from .render import to_braille
@@ -76,7 +76,7 @@ def complexity_for(cols):
 
 
 def generate(rng, cols, max_complexity=None, attempts=60, theme=None,
-             wishes=None):
+             wishes=None, vocab=1):
     """Roll arms until one renders legibly at `cols` wide.
 
     `wishes`, from hatchment.prompt, fixes whatever a description named and
@@ -90,10 +90,11 @@ def generate(rng, cols, max_complexity=None, attempts=60, theme=None,
     for _ in range(attempts):
         if wishes is not None:
             blazon = prompt.compose(wishes, rng, theme=theme,
-                                    max_complexity=max_complexity)
+                                    max_complexity=max_complexity, vocab=vocab)
             repeats = repeats + 1 if last and blazon.describe() == last[0].describe() else 0
         else:
-            blazon = Blazon(rng, theme=theme).generate(max_complexity=max_complexity)
+            blazon = Blazon(rng, theme=theme, vocab=vocab).generate(
+                max_complexity=max_complexity)
         art = draw_at(blazon, cols)
         last = (blazon, art)
         if INK_MIN <= ink_ratio(art) <= INK_MAX:
@@ -122,9 +123,7 @@ def main(argv=None):
                    help="width in terminal columns (default: 24)")
     p.add_argument("--simple", action="store_true",
                    help="restrict to the simplest charges")
-    p.add_argument("--theme",
-                   choices=("cosmic", "fractal", "geometric", "medieval",
-                            "natural"),
+    p.add_argument("--theme", choices=THEMES,
                    help="draw charges from one register only "
                         "(default: both)")
     p.add_argument("--fastfetch", action="store_true",
@@ -169,13 +168,14 @@ def main(argv=None):
             and not (args.fastfetch or args.screensaver or args.menu_icon)):
         return 0
 
-    seed = args.seed if args.seed is not None else os.urandom(8).hex()
+    seed = args.seed if args.seed is not None else new_seed()
     rng = random.Random(seed)
 
     wishes = prompt.parse(args.prompt) if args.prompt else None
     blazon, art = generate(rng, args.cols,
                            max_complexity=1 if args.simple else 3,
-                           theme=args.theme, wishes=wishes)
+                           theme=args.theme, wishes=wishes,
+                           vocab=vocabulary_for(seed, args.theme))
 
     if not args.quiet:
         print(blazon.describe())

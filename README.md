@@ -98,6 +98,7 @@ hatchment --theme cosmic      # the themes are alphabetical throughout
 hatchment --theme fractal
 hatchment --theme geometric
 hatchment --theme medieval
+hatchment --theme mythic
 hatchment --theme natural
 ```
 
@@ -105,11 +106,26 @@ Themes filter the charge table; they do not add a separate vocabulary, because
 heraldry already had both registers.
 
 - **Medieval** — tower, sword, key, crown, portcullis, chalice, fleur-de-lis,
-  billet, banner, and rearing lion and horse
+  billet, banner, rearing lion and horse, and the tools and emblems of the
+  period: anchor, axe, hammer, anvil, bell, horseshoe, wheel, harp, bugle horn,
+  arrow, helm, lymphad (a galley), book, hourglass, scales, heart, open hand,
+  cross patée, cross crosslet
 - **Cosmic** — sun in splendour, estoile, comet, increscent, orb, mullet,
-  crescent, annulet, eagle
+  crescent, annulet, eagle, ringed planet, compass rose, yin and yang, and the
+  zodiac's ram, bull, crab and scorpion
+
+Seeds rolled before 0.1.8 — sixteen hex digits, the shape Randomise used to
+make — still roll from the charges of the time, so arms you kept the seed of
+come back the same. New seeds are eighteen digits and draw on everything.
 - **Natural** — garb (a wheatsheaf), tree, rose, trefoil, attires (a pair of
-  antlers borne without the stag), stag, bee, fish, horse, lion, eagle
+  antlers borne without the stag), stag, bee, fish, horse, lion, eagle, wolf,
+  bear, boar, fox, bull, ram, hare, hound, elephant, owl, raven, swan, martlet
+  (the heraldic swallow), cockerel, butterfly, bat, spider, scorpion, serpent,
+  frog, tortoise, crab, dolphin, escallop (a scallop shell), mountain, cloud,
+  acorn, oak leaf, thistle, bunch of grapes
+- **Mythic** — dragon, griffin, unicorn, phoenix, pegasus, with the serpent,
+  wolf, raven, owl and bat, and the older symbols: eye, skull, flame,
+  thunderbolt, triskele, Bowen knot, ankh
 - **Fractal** — Sierpinski gasket, Sierpinski carpet, Vicsek fractal, Koch
   snowflake, mandala, nested polygons, H-tree, Cantor bars, flower of life,
   recursive circles

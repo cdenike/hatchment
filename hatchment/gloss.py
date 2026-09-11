@@ -128,6 +128,12 @@ EN = {
     "and": " and ",
 }
 
+# The 0.1.8 charges carry their plain names with them.
+from . import charges as _charges  # noqa: E402
+
+EN["charge"].update({n: m[2] for n, m in _charges.META.items()})
+EN["plural"].update({m[2]: m[3] for m in _charges.META.values() if m[3]})
+
 LANGS = {"en": EN}
 
 

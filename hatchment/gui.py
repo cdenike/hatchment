@@ -20,6 +20,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import fastfetch, menuicon, prompt, screensaver, stock, theme
 from .gloss import plain
+from .blazon import new_seed, vocabulary_for
 from .cli import (FASTFETCH_LOGO, SCREENSAVER,
                   draw_at, generate, write)
 from .draw import render
@@ -233,7 +234,8 @@ class HatchmentWindow(Adw.ApplicationWindow):
         # Alphabetical after the first entry, which is the "no filter" option
         # and belongs at the top rather than sorted in among the filters.
         self.theme_drop = Gtk.DropDown.new_from_strings(
-            ["All", "Cosmic", "Fractal", "Geometric", "Medieval", "Natural"])
+            ["All", "Cosmic", "Fractal", "Geometric", "Medieval", "Mythic",
+             "Natural"])
         self.theme_drop.set_hexpand(True)
         # Re-roll on change so the choice shows itself immediately rather than
         # waiting for the next press of Randomise.
@@ -524,10 +526,13 @@ class HatchmentWindow(Adw.ApplicationWindow):
         if self.busy:
             return
         self.set_busy(True)
-        seed = seed or os.urandom(8).hex()
+        seed = seed or new_seed()
 
-        theme = (None, "cosmic", "fractal", "geometric", "medieval",
+        theme = (None, "cosmic", "fractal", "geometric", "medieval", "mythic",
                  "natural")[self.theme_drop.get_selected()]
+        # A seed from before 0.1.8 rolls from the vocabulary it was made in,
+        # so arms someone kept the seed of still come back the same.
+        vocab = vocabulary_for(seed, theme)
         text = self.prompt_entry.get_text().strip()
         wishes = prompt.parse(text) if text else None
         notes = wishes.notes if wishes else []
@@ -536,7 +541,7 @@ class HatchmentWindow(Adw.ApplicationWindow):
             try:
                 rng = random.Random(seed)
                 blazon, art = generate(rng, PREVIEW_COLS, theme=theme,
-                                       wishes=wishes)
+                                       wishes=wishes, vocab=vocab)
                 # Rendered here rather than when the menu opens: it is another
                 # rsvg call, and a popover that shells out while it animates
                 # stutters.

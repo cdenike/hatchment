@@ -220,17 +220,29 @@ def _division_polygon(name, style, w, h):
 
 
 def _division_regions(name, style, w, h):
-    """Divisions made of more than one patch of the second tincture."""
+    """Divisions made of more than one patch of the second tincture.
+
+    Each cut is walked out from the fess point with the line style applied --
+    the same edge a per pale or per bend gets. These used to be drawn straight
+    whatever the blazon said, so "Quarterly engrailed" showed plain quarters.
+    """
+    from . import lines
     cx, cy = w / 2, h * 0.47
+
+    def cut(to):
+        return lines.points((cx, cy), to, style)
+
     if name == "quarterly":
-        return [[(cx, -6), (w + 6, -6), (w + 6, cy), (cx, cy)],
-                [(-6, cy), (cx, cy), (cx, h + 6), (-6, h + 6)]]
+        up, down = cut((cx, -6)), cut((cx, h + 6))
+        right, left = cut((w + 6, cy)), cut((-6, cy))
+        return [up[::-1] + right[1:] + [(w + 6, -6)],
+                down[::-1] + left[1:] + [(-6, h + 6)]]
     if name == "per saltire":
         # Four triangles meeting at the fess point; the flanking pair is the
         # second tincture, which is what makes it read as a saltire cut rather
         # than as quarterly turned forty-five degrees.
-        return [[(cx, cy), (-6, -6), (-6, h + 6)],
-                [(cx, cy), (w + 6, -6), (w + 6, h + 6)]]
+        return [cut((-6, -6))[::-1] + cut((-6, h + 6))[1:],
+                cut((w + 6, -6))[::-1] + cut((w + 6, h + 6))[1:]]
     return []
 
 
@@ -303,6 +315,14 @@ def _poly(points):
 
 def _charge_path(name, cx, cy, r):
     """One charge, centred on (cx, cy) with radius r. Silhouettes only."""
+    from . import charges
+    if name in charges.SHAPES:
+        # Drawn in a 200-unit box and scaled into place. The outline width is
+        # scaled back up by the same factor, so it matches the older charges'
+        # instead of shrinking to a hairline with the shape.
+        k = r / 100.0
+        return (f'<g transform="translate({cx:.2f} {cy:.2f}) scale({k:.4f})" '
+                f'stroke-width="{1.15 / k:.2f}">{charges.SHAPES[name]}</g>')
     if name == "roundel":
         return f'<circle cx="{cx}" cy="{cy}" r="{r}"/>'
 

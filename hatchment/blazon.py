@@ -11,8 +11,9 @@ thing a braille cell can say.
 """
 
 import random
+import re
 
-from . import lines, patterns
+from . import charges, lines, patterns
 
 # --- Tinctures -------------------------------------------------------------
 
@@ -122,9 +123,10 @@ FURS = ["ermine", "counter-ermine", "vair"]
 # Semé: a field strewn with small charges, repeated to the edges and cut off by
 # them. One line of vocabulary that multiplies by the whole charge list, and the
 # commonest thing in real heraldry that this generator was missing.
-SEME_CHARGES = ["mullet", "roundel", "lozenge", "billet", "crescent",
-                "fleur-de-lis", "annulet", "trefoil", "estoile", "bee",
-                "rose", "garb", "increscent", "orb"]
+LEGACY_SEME = ["mullet", "roundel", "lozenge", "billet", "crescent",
+               "fleur-de-lis", "annulet", "trefoil", "estoile", "bee",
+               "rose", "garb", "increscent", "orb"]
+SEME_CHARGES = LEGACY_SEME + [n for n, m in charges.META.items() if m[5]]
 
 # Charges are simple silhouettes. Anything with interior detail (a lion's mane,
 # a spread eagle's feathers) turns to mud below about 60 dots wide, so the
@@ -176,9 +178,16 @@ CHARGES = {
     "orb": {"complexity": 3, "themes": {"cosmic"}},
 }
 
-# The last two are not heraldry and do not pretend to be: they treat the shield
-# as a frame for a pattern rather than as arms.
-THEMES = ("cosmic", "fractal", "geometric", "medieval", "natural")
+# The 0.1.8 charges: beasts, birds, the mythic, objects and symbols, drawn in
+# hatchment.charges. Marked with the vocabulary they arrived in, so a seed from
+# before them still rolls from the table it was rolled from.
+for _name, _meta in charges.META.items():
+    CHARGES[_name] = {"complexity": _meta[0], "themes": set(_meta[1]), "since": 1}
+
+# Fractal and geometric are not heraldry and do not pretend to be: they treat
+# the shield as a frame for a pattern rather than as arms.
+THEMES = ("cosmic", "fractal", "geometric", "medieval", "mythic", "natural")
+LEGACY_THEMES = ("cosmic", "fractal", "geometric", "medieval", "natural")
 
 # Spelled out, because a blazon counts in words: "Barry of ten", never "of 10".
 NUMBER_WORD = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
@@ -187,7 +196,7 @@ NUMBER_WORD = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
 
 # A few charges are grammatically plural already, so the singular article has to
 # be attached to something else: a stag has attires, never "an attires".
-BLAZON_NAME = {"attires": "pair of attires"}
+BLAZON_NAME = {"attires": "pair of attires", "scales": "pair of scales"}
 
 # What "All" rolls through. Every theme, plus "free": unfiltered heraldry, which
 # is what no theme used to mean on its own. Free is kept as its own mode rather
@@ -195,13 +204,36 @@ BLAZON_NAME = {"attires": "pair of attires"}
 # its charges -- without it, barry and checky and ermine would nearly vanish
 # from the one setting that is supposed to show everything.
 ALL_MODES = THEMES + ("free",)
+LEGACY_MODES = LEGACY_THEMES + ("free",)
+
+# Every seed Randomise made before 0.1.8 is sixteen hex digits. Rolled against
+# the vocabulary of the time, they come out as the arms they always were;
+# anything else -- a new eighteen-digit seed, a word -- gets everything.
+_LEGACY_SEED = re.compile(r"[0-9a-f]{16}")
+
+
+def vocabulary_for(seed, theme=None):
+    """1 for the full vocabulary, 0 for the one a pre-0.1.8 seed was rolled in.
+
+    A mythic theme always takes the full one: no earlier seed ever had it.
+    """
+    if theme != "mythic" and _LEGACY_SEED.fullmatch(seed or ""):
+        return 0
+    return 1
+
+
+def new_seed():
+    """A fresh seed, one digit pair longer than the legacy shape."""
+    import os
+    return os.urandom(9).hex()
 
 
 class Blazon:
     """A generated coat of arms, in both formal and drawable form."""
 
-    def __init__(self, rng, theme=None):
+    def __init__(self, rng, theme=None, vocab=1):
         self.rng = rng
+        self.vocab = vocab
         # None means draw from both registers.
         self.theme = theme
         self.field = None
@@ -227,6 +259,8 @@ class Blazon:
         for name, meta in CHARGES.items():
             if meta["complexity"] > max_complexity:
                 continue
+            if meta.get("since", 0) > self.vocab:
+                continue
             if self.theme and self.theme not in meta["themes"]:
                 continue
             pool.append(name)
@@ -242,7 +276,7 @@ class Blazon:
         # those are gated on the theme name, so an unfiltered roll could never
         # reach them however long it ran.
         if self.theme is None:
-            mode = rng.choice(ALL_MODES)
+            mode = rng.choice(ALL_MODES if self.vocab else LEGACY_MODES)
             self.theme = None if mode == "free" else mode
         # Weighted towards a metal field. Flattened to two tones, a colour field
         # becomes a solid black shield that swallows everything on it, so most
@@ -312,7 +346,7 @@ class Blazon:
             if not is_metal(self.field):
                 self.field = rng.choice(METALS)
                 self.fur = None
-            self.seme = rng.choice(SEME_CHARGES)
+            self.seme = rng.choice(SEME_CHARGES if self.vocab else LEGACY_SEME)
             self.field2 = pick_contrasting(self.field, rng)
 
         # Three ways to build arms, and the third matters: a plain field
@@ -483,7 +517,7 @@ class Blazon:
         if self.charge:
             if self.charge_count == 1:
                 word = BLAZON_NAME.get(self.charge, self.charge)
-                article = "an" if word[0] in "aeiou" else "a"
+                article = charges.article(word)
                 parts.append("%s %s %s" % (article, word,
                                            self.charge_tincture))
             else:
@@ -503,6 +537,7 @@ class Blazon:
     # is its own plural too.
     PLURALS = {"fleur-de-lis": "fleurs-de-lis", "fish": "fish",
                "attires": "attires", "sun in splendour": "suns in splendour"}
+    PLURALS.update({n: m[4] for n, m in charges.META.items() if m[4]})
 
     @classmethod
     def _plural(cls, charge):

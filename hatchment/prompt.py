@@ -16,7 +16,7 @@ import difflib
 import re
 from dataclasses import dataclass, field as _default
 
-from . import lines, patterns
+from . import charges, lines, patterns
 from .blazon import (BANDED, FURS, METALS, SEME_CHARGES, VARIATIONS, Blazon,
                      is_metal, pick_colour, pick_contrasting)
 from .gloss import EN
@@ -76,8 +76,11 @@ CHARGE_WORDS = {
     "increscent": ["increscent"],
     "sun in splendour": ["sun in splendour", "sun in splendor", "sun"],
     "comet": ["comet"],
-    "orb": ["orb", "globe", "planet"],
+    "orb": ["orb", "globe"],
 }
+# The 0.1.8 charges bring their own words.
+for _name, _meta in charges.META.items():
+    CHARGE_WORDS[_name] = list(_meta[6])
 
 ORDINARY_WORDS = {
     "cross": ["cross"],
@@ -137,7 +140,7 @@ LINE_WORDS = {
     "dancetty": ["dancetty", "dancette", "deep zigzag"],
     "embattled": ["embattled", "battlements", "battlemented", "crenellated",
                   "castellated"],
-    "nebuly": ["nebuly", "cloudy", "clouds", "cloud"],
+    "nebuly": ["nebuly", "cloudy", "cloud-shaped"],
 }
 
 PATTERN_WORDS = {name: [name] for name in list(patterns.FRACTAL) + list(patterns.GEOMETRIC)}
@@ -163,6 +166,8 @@ THEME_WORDS = {
     "geometric": ["geometric", "geometry"],
     "medieval": ["medieval", "knightly"],
     "natural": ["natural", "nature"],
+    "mythic": ["mythic", "mythical", "myth", "legendary", "fantasy", "magic",
+               "magical"],
 }
 
 SEME_WORDS = ["semé of", "seme of", "semé", "seme", "strewn with",
@@ -196,11 +201,16 @@ FILLER = {
     "ancient", "royal", "noble", "rampant", "passant", "displayed", "regal",
     "old", "new", "elegant", "strong", "brave", "mighty", "great", "lot",
     "lots", "many", "several", "one's", "it's", "crossed",
+    # Poses. Each charge has one drawing, so how it stands changes nothing.
+    "rising", "flying", "leaping", "running", "swimming", "sleeping",
+    "roaring", "rearing", "walking", "sitting", "perched", "soaring",
+    "howling", "crouching", "coiled", "burning", "glowing", "facing",
 }
 
 # Short names for the charges, for the hint shown when a word is not one.
-DRAWABLE = ("lions, eagles, stags, horses, fish, bees, trees, roses, towers, "
-            "swords, keys, crowns, stars, moons, suns")
+DRAWABLE = ("lions, wolves, bears, eagles, owls, dragons, unicorns, griffins, "
+            "stags, horses, fish, butterflies, trees, roses, towers, swords, "
+            "anchors, crowns, hearts, skulls, stars, moons, suns")
 
 _NOUNS = ("charge", "ordinary", "border", "semeobj", "field", "division",
           "variation", "pattern", "theme")
@@ -535,12 +545,8 @@ def parse(text):
                        "may not stand out" % w.division)
 
     if w.line and w.names_shapes() and not _cut(w.division, w.ordinary):
-        if w.division:
-            w.notes.append("quartered and saltire cuts are drawn straight, so "
-                           "the %s edge was left off" % w.line)
-        else:
-            w.notes.append("a %s edge needs a division or a band to run along"
-                           % w.line)
+        w.notes.append("a %s edge needs a division or a band to run along"
+                       % w.line)
 
     # Colours with no owner go where a description most likely meant them:
     # the field first, then whatever else was named without a colour.
@@ -604,16 +610,9 @@ def _clash_notes(w):
 
 HALVES = {"per fess": "upper", "per pale": "dexter"}
 
-# Divisions the renderer draws with a styled edge. Quarterly and per saltire are
-# drawn straight whatever their line says, so an edge rolled or asked for there
-# would put words in the blazon that the picture does not show.
-DRAWN_EDGES = ("per pale", "per fess", "per bend", "per bend sinister",
-               "per chevron")
-
-
 def _cut(division, ordinary):
-    """True when these arms have an edge the renderer can draw a line along."""
-    return division in DRAWN_EDGES or ordinary in BANDED
+    """True when these arms have an edge a line style can run along."""
+    return bool(division) or ordinary in BANDED
 
 
 def _ground(tinctures, rng):
@@ -631,10 +630,10 @@ def _ground(tinctures, rng):
     return pick_colour(rng)
 
 
-def compose(w, rng, theme=None, max_complexity=3):
+def compose(w, rng, theme=None, max_complexity=3, vocab=1):
     """Build arms from Wishes, rolling whatever they leave open."""
     theme = w.theme or theme
-    b = Blazon(rng, theme=theme)
+    b = Blazon(rng, theme=theme, vocab=vocab)
 
     # Nothing shaped was named -- colours, a theme, or nothing usable at all --
     # so the generator picks the shapes and the colours go on afterwards.
