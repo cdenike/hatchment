@@ -429,33 +429,6 @@ def _charge_path(name, cx, cy, r):
                     f'L {cx + sx * r * 0.01} {cy + r * 0.20} Z"/>')
         return rack(-1) + rack(1)
 
-    if name == "stag":
-        # Body of a standing beast, with a rack on the head: the antlers are
-        # the whole difference between this and the horse.
-        return (f'<path d="'
-                f'M {cx - r * 0.92} {cy - r * 0.30} '
-                f'L {cx - r * 0.62} {cy - r * 0.44} '
-                f'L {cx - r * 0.44} {cy - r * 0.06} '
-                f'L {cx + r * 0.46} {cy - r * 0.10} '
-                f'L {cx + r * 0.72} {cy - r * 0.34} '
-                f'L {cx + r * 0.86} {cy + r * 0.02} '
-                f'L {cx + r * 0.64} {cy + r * 0.30} '
-                f'L {cx + r * 0.70} {cy + r * 0.96} '
-                f'L {cx + r * 0.44} {cy + r * 0.96} '
-                f'L {cx + r * 0.34} {cy + r * 0.38} '
-                f'L {cx - r * 0.26} {cy + r * 0.40} '
-                f'L {cx - r * 0.36} {cy + r * 0.96} '
-                f'L {cx - r * 0.62} {cy + r * 0.96} '
-                f'L {cx - r * 0.54} {cy + r * 0.28} '
-                f'L {cx - r * 0.78} {cy + r * 0.06} Z"/>'
-                f'<path d="M {cx - r * 0.80} {cy - r * 0.40} '
-                f'L {cx - r * 0.96} {cy - r * 0.86} '
-                f'L {cx - r * 0.74} {cy - r * 0.62} '
-                f'L {cx - r * 0.66} {cy - r * 0.92} '
-                f'L {cx - r * 0.58} {cy - r * 0.54} '
-                f'L {cx - r * 0.42} {cy - r * 0.80} '
-                f'L {cx - r * 0.50} {cy - r * 0.40} Z"/>')
-
     if name == "bee":
         return (f'<ellipse cx="{cx}" cy="{cy + r * 0.22}" '
                 f'rx="{r * 0.40}" ry="{r * 0.62}"/>'
@@ -490,47 +463,6 @@ def _charge_path(name, cx, cy, r):
                 f'Q {cx + r * 0.50} {cy - r * 0.20} {cx + r * 0.92} {cy + r * 0.22} '
                 f'L {cx - r * 0.70} {cy - r * 0.08} Z"/>'
                 f'<circle cx="{cx - r * 0.78}" cy="{cy - r * 1.06}" r="{r * 0.15}"/>')
-
-    if name == "lion":
-        # Lion rampant: rearing, facing dexter, tail over the back. Blocky on
-        # purpose -- a lion with real mane detail is a smudge at 40 dots.
-        return (f'<path d="'
-                f'M {cx - r * 0.72} {cy + r * 0.98} '
-                f'L {cx - r * 0.30} {cy + r * 0.98} '
-                f'L {cx - r * 0.22} {cy + r * 0.30} '
-                f'L {cx + r * 0.12} {cy + r * 0.40} '
-                f'L {cx + r * 0.20} {cy + r * 0.98} '
-                f'L {cx + r * 0.60} {cy + r * 0.98} '
-                f'L {cx + r * 0.50} {cy + r * 0.10} '
-                f'L {cx + r * 0.62} {cy - r * 0.30} '
-                f'L {cx + r * 0.30} {cy - r * 0.44} '
-                f'L {cx + r * 0.10} {cy - r * 0.86} '
-                f'L {cx - r * 0.24} {cy - r * 0.96} '
-                f'L {cx - r * 0.52} {cy - r * 0.70} '
-                f'L {cx - r * 0.40} {cy - r * 0.34} '
-                f'L {cx - r * 0.66} {cy - r * 0.10} '
-                f'L {cx - r * 0.86} {cy - r * 0.52} '
-                f'L {cx - r * 0.98} {cy - r * 0.18} '
-                f'L {cx - r * 0.74} {cy + r * 0.34} Z"/>')
-
-    if name == "horse":
-        # Horse forcene: rearing, forelegs up, head to dexter.
-        return (f'<path d="'
-                f'M {cx - r * 0.86} {cy - r * 0.56} '
-                f'L {cx - r * 0.50} {cy - r * 0.76} '
-                f'L {cx - r * 0.30} {cy - r * 0.52} '
-                f'L {cx + r * 0.06} {cy - r * 0.40} '
-                f'L {cx + r * 0.34} {cy - r * 0.66} '
-                f'L {cx + r * 0.52} {cy - r * 0.34} '
-                f'L {cx + r * 0.44} {cy + r * 0.16} '
-                f'L {cx + r * 0.66} {cy + r * 0.98} '
-                f'L {cx + r * 0.30} {cy + r * 0.98} '
-                f'L {cx + r * 0.14} {cy + r * 0.36} '
-                f'L {cx - r * 0.16} {cy + r * 0.30} '
-                f'L {cx - r * 0.26} {cy + r * 0.98} '
-                f'L {cx - r * 0.60} {cy + r * 0.98} '
-                f'L {cx - r * 0.50} {cy + r * 0.10} '
-                f'L {cx - r * 0.62} {cy - r * 0.26} Z"/>')
 
     if name == "eagle":
         # Eagle displayed: wings spread, head to dexter, tail below. Symmetric
