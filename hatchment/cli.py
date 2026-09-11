@@ -7,7 +7,7 @@ import random
 import subprocess
 import sys
 
-from . import fastfetch, menuicon, screensaver, stock
+from . import fastfetch, menuicon, prompt, screensaver, stock
 from .blazon import Blazon
 from .draw import render
 from .gloss import plain
@@ -75,17 +75,31 @@ def complexity_for(cols):
     return 3
 
 
-def generate(rng, cols, max_complexity=None, attempts=60, theme=None):
-    """Roll arms until one renders legibly at `cols` wide."""
+def generate(rng, cols, max_complexity=None, attempts=60, theme=None,
+             wishes=None):
+    """Roll arms until one renders legibly at `cols` wide.
+
+    `wishes`, from hatchment.prompt, fixes whatever a description named and
+    leaves the rest to the roll. When it named everything there is nothing left
+    to re-roll, so the same arms coming back three times ends the search rather
+    than rendering them sixty times over.
+    """
     if max_complexity is None:
         max_complexity = complexity_for(cols)
-    last = None
+    last, repeats = None, 0
     for _ in range(attempts):
-        blazon = Blazon(rng, theme=theme).generate(max_complexity=max_complexity)
+        if wishes is not None:
+            blazon = prompt.compose(wishes, rng, theme=theme,
+                                    max_complexity=max_complexity)
+            repeats = repeats + 1 if last and blazon.describe() == last[0].describe() else 0
+        else:
+            blazon = Blazon(rng, theme=theme).generate(max_complexity=max_complexity)
         art = draw_at(blazon, cols)
         last = (blazon, art)
         if INK_MIN <= ink_ratio(art) <= INK_MAX:
             return blazon, art
+        if repeats >= 2:
+            break
     # Give back the last roll rather than failing outright; the caller still
     # gets working arms, just not ones that passed the aesthetic gate.
     return last
@@ -101,6 +115,9 @@ def main(argv=None):
         prog="hatchment",
         description="Generate a random coat of arms as braille art.")
     p.add_argument("--seed", help="reproduce a specific coat of arms")
+    p.add_argument("--prompt", metavar="TEXT",
+                   help='describe the arms, e.g. "three gold lions on red, a '
+                        'blue border"; anything left out is rolled')
     p.add_argument("--cols", type=int, default=24,
                    help="width in terminal columns (default: 24)")
     p.add_argument("--simple", action="store_true",
@@ -155,9 +172,10 @@ def main(argv=None):
     seed = args.seed if args.seed is not None else os.urandom(8).hex()
     rng = random.Random(seed)
 
+    wishes = prompt.parse(args.prompt) if args.prompt else None
     blazon, art = generate(rng, args.cols,
                            max_complexity=1 if args.simple else 3,
-                           theme=args.theme)
+                           theme=args.theme, wishes=wishes)
 
     if not args.quiet:
         print(blazon.describe())
@@ -165,6 +183,12 @@ def main(argv=None):
         if gloss:
             print('\u201c%s\u201d' % gloss)
         print("seed: %s" % seed)
+        if wishes and wishes.notes:
+            # After the arms they are about, not before: stderr is unbuffered
+            # and would otherwise jump ahead of everything printed so far.
+            sys.stdout.flush()
+            for note in wishes.notes:
+                print("note: %s" % note, file=sys.stderr)
         print()
     print(art)
 

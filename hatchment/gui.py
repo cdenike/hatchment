@@ -18,7 +18,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import fastfetch, menuicon, screensaver, stock, theme
+from . import fastfetch, menuicon, prompt, screensaver, stock, theme
 from .gloss import plain
 from .cli import (FASTFETCH_LOGO, SCREENSAVER,
                   draw_at, generate, write)
@@ -74,6 +74,7 @@ BASE_CSS = """
 .blazon { font-size: 15px; font-weight: 600; }
 .gloss { font-size: 12px; opacity: 0.72; font-style: italic; }
 .seed { font-family: monospace; opacity: 0.6; font-size: 11px; }
+.prompt-note { opacity: 0.7; font-size: 12px; }
 .thumb {
   font-family: "JetBrainsMono Nerd Font", "JetBrainsMono NF", monospace;
   font-size: 9px;
@@ -249,6 +250,40 @@ class HatchmentWindow(Adw.ApplicationWindow):
         seed_row.append(self.seed_entry)
         box.append(seed_row)
 
+        # -- description: arms from a few words --
+        # A description is a standing instruction, like the theme: while it is
+        # there, every roll honours it and varies only what it leaves open, so
+        # Randomise gives another take on the same arms. Clearing it goes back
+        # to rolling freely.
+        prompt_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.prompt_entry = Gtk.Entry()
+        self.prompt_entry.set_placeholder_text(
+            "Describe your arms — e.g. three gold lions on red, a blue border")
+        self.prompt_entry.set_tooltip_text(
+            "Whatever you name is kept; the rest is rolled. Randomise keeps "
+            "using the description until you clear it.")
+        self.prompt_entry.set_hexpand(True)
+        self.prompt_entry.set_icon_from_icon_name(
+            Gtk.EntryIconPosition.SECONDARY, "edit-clear-symbolic")
+        self.prompt_entry.set_icon_tooltip_text(
+            Gtk.EntryIconPosition.SECONDARY, "Clear, and roll freely again")
+        self.prompt_entry.connect("icon-press", self._clear_prompt)
+        self.prompt_entry.connect("activate", lambda *_: self.roll(None))
+        prompt_row.append(self.prompt_entry)
+        self.prompt_btn = Gtk.Button(label="Create")
+        self.prompt_btn.connect("clicked", lambda *_: self.roll(None))
+        prompt_row.append(self.prompt_btn)
+        box.append(prompt_row)
+
+        # What the description could not be held to, said plainly: a word
+        # hatchment does not know, a colour with nowhere to go.
+        self.prompt_note = Gtk.Label(label="")
+        self.prompt_note.add_css_class("prompt-note")
+        self.prompt_note.set_wrap(True)
+        self.prompt_note.set_xalign(0)
+        self.prompt_note.set_visible(False)
+        box.append(self.prompt_note)
+
         # -- actions --
         self.roll_btn = Gtk.Button(label="Randomise")
         self.roll_btn.add_css_class("suggested-action")
@@ -350,9 +385,11 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self._rebuild_history()
         return button
 
-    def _remember(self, blazon, art, seed, thumb, text, gloss):
+    def _remember(self, blazon, art, seed, thumb, text, gloss, prompt_text="",
+                  notes=()):
         self.history.insert(0, {"blazon": blazon, "art": art, "seed": seed,
-                                "thumb": thumb, "text": text, "gloss": gloss})
+                                "thumb": thumb, "text": text, "gloss": gloss,
+                                "prompt": prompt_text, "notes": list(notes)})
         del self.history[HISTORY_MAX:]
         self._rebuild_history()
 
@@ -432,11 +469,23 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.gloss_label.set_text(entry["gloss"])
         self.seed_label.set_text("seed: %s" % entry["seed"])
         self.seed_entry.set_text("")
+        # The description comes back with the arms: it and the seed together
+        # are what reproduce them, and the next roll should honour it again.
+        self.prompt_entry.set_text(entry.get("prompt", ""))
+        self._show_notes(entry.get("notes", ()))
 
     # -- helpers --
 
     def toast(self, text):
         self.toasts.add_toast(Adw.Toast(title=text))
+
+    def _show_notes(self, notes):
+        self.prompt_note.set_text("\n".join(n[0].upper() + n[1:] for n in notes))
+        self.prompt_note.set_visible(bool(notes))
+
+    def _clear_prompt(self, entry, *_):
+        entry.set_text("")
+        self._show_notes(())
 
     def set_busy(self, busy):
         """Disable the buttons for the duration of a roll, and keep the focus.
@@ -452,7 +501,7 @@ class HatchmentWindow(Adw.ApplicationWindow):
         if busy:
             self._focus_before_busy = self.get_focus()
         for b in (self.roll_btn, self.ff_btn, self.ss_btn, self.menu_btn,
-                  self.svg_btn, self.png_btn, self.stock_btn):
+                  self.svg_btn, self.png_btn, self.stock_btn, self.prompt_btn):
             b.set_sensitive(not busy
                             and (b is not self.menu_btn or menuicon.available())
                             and (b is not self.stock_btn or stock.available()))
@@ -479,22 +528,27 @@ class HatchmentWindow(Adw.ApplicationWindow):
 
         theme = (None, "cosmic", "fractal", "geometric", "medieval",
                  "natural")[self.theme_drop.get_selected()]
+        text = self.prompt_entry.get_text().strip()
+        wishes = prompt.parse(text) if text else None
+        notes = wishes.notes if wishes else []
 
         def work():
             try:
                 rng = random.Random(seed)
-                blazon, art = generate(rng, PREVIEW_COLS, theme=theme)
+                blazon, art = generate(rng, PREVIEW_COLS, theme=theme,
+                                       wishes=wishes)
                 # Rendered here rather than when the menu opens: it is another
                 # rsvg call, and a popover that shells out while it animates
                 # stutters.
                 thumb = draw_at(blazon, THUMB_COLS)
-                GLib.idle_add(self.show_result, blazon, art, seed, thumb)
+                GLib.idle_add(self.show_result, blazon, art, seed, thumb,
+                              text, notes)
             except BaseException as exc:  # never leave the UI stuck on "Rolling…"
                 GLib.idle_add(self.show_error, str(exc))
 
         threading.Thread(target=work, daemon=True).start()
 
-    def show_result(self, blazon, art, seed, thumb=""):
+    def show_result(self, blazon, art, seed, thumb="", text="", notes=()):
         """Put a finished roll on screen.
 
         Everything here is wrapped, and set_busy(False) is in a finally, because
@@ -515,8 +569,9 @@ class HatchmentWindow(Adw.ApplicationWindow):
             self.gloss_label.set_text("\u201c%s\u201d" % gloss if gloss else "")
             self.seed_label.set_text("seed: %s" % seed)
             self.seed_entry.set_text("")
+            self._show_notes(notes)
             self._remember(blazon, art, seed, thumb, blazon.describe(),
-                           self.gloss_label.get_text())
+                           self.gloss_label.get_text(), text, notes)
         except Exception as exc:
             self.toast("Could not display arms: %s" % exc)
         finally:

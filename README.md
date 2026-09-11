@@ -272,6 +272,11 @@ arms you liked, and setting the screensaver only takes over the screen if you
 tick the box. **Restore Omarchy defaults…**, at the bottom, undoes all three
 installs after asking — see [Back to stock](#back-to-stock).
 
+**Describe your arms** takes a few words — *three gold lions on red, a blue
+border* — and makes arms from them; see [Describing your arms](#describing-your-arms).
+While a description is in the box, **Randomise** keeps to it and varies only
+what it leaves open. Clear it to roll freely again.
+
 It ships a desktop entry, so it also shows up in the app launcher.
 
 Under a tiling compositor — Hyprland, Sway, river, niri — the window drops its
@@ -319,11 +324,58 @@ Two details that cost a debugging round each, recorded so they don't again:
   beside it in `current/`. Both are watched, because `omarchy theme set` and
   `omarchy theme refresh` touch different ones.
 
+## Describing your arms
+
+A description names what you want; anything it does not name is rolled. It
+reads plain English and heraldry alike — *three gold lions on red* and
+*Gules, three lions or* make the same arms.
+
+```text
+three gold lions on red, a blue border
+a black eagle on a silver field
+quartered red and gold with a white star
+blue strewn with gold stars
+red and white stripes
+a wavy green band on white
+a gold and blue mandala
+something cosmic in blue and silver
+```
+
+- **Colours** — plain or heraldic: red or gules, blue or azure, gold or or,
+  silver or white or argent, black or sable, green or vert, purple or purpure,
+  plus orange (tenné), mulberry (murrey), blood red (sanguine), and the furs
+  ermine, counter-ermine and vair.
+- **Charges** — lions, eagles, stags, horses, fish, bees, trees, roses, clover,
+  towers, swords, keys, crowns, cups, banners, gates, wheatsheaves, antlers,
+  stars, moons, suns, comets, orbs, fleurs-de-lis, and plain shapes: discs,
+  rings, diamonds, rectangles. Say how many — *a*, *two*, *three*, up to five.
+- **Ordinaries** — a cross, a diagonal cross (saltire), a band across (fess)
+  or down (pale), a diagonal band (bend), a chevron, a band across the top
+  (chief), a corner square (canton), an inner border (orle), a border.
+- **Fields** — split vertically, horizontally or diagonally, quartered;
+  stripes, checkered, diamond pattern, pinwheel; *strewn with* a small charge.
+- **Edges** — wavy, scalloped, zigzag, crenellated, cloudy.
+- **Themes and patterns** — cosmic, medieval, natural, fractal, geometric, or a
+  pattern by name: mandala, sunburst, snowflake, flower of life, honeycomb…
+
+A colour belongs to whatever it sits next to: *gold lion* and *a lion or* both
+colour the lion, *on red* colours the field, and *red and white stripes*
+colours both halves. Anything left uncoloured is given a tincture that stands
+out against what is under it.
+
+It is a phrase reader, not a language model: offline, instant, and the same
+words with the same seed always make the same arms. What it cannot use, it
+says under the box — a word it does not know (with a suggestion if one is
+close), two colours that break the rule of tincture, a sixth lion. Colour on
+colour is drawn as asked; it shows in a colour export but merges in the
+terminal's two tones, and the note says so.
+
 ## Usage
 
 ```bash
 hatchment                          # roll and print
 hatchment --seed my-house          # reproducible arms
+hatchment --prompt "three gold lions on red, a blue border"   # describe them
 hatchment --cols 32                # wider
 hatchment --simple                 # simplest charges only
 hatchment --svg arms.svg           # full-colour vector export
