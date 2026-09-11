@@ -20,7 +20,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import fastfetch, menuicon, prompt, screensaver, stock, theme
 from .gloss import plain
-from .blazon import new_seed, vocabulary_for
+from .blazon import THEMES, new_seed, vocabulary_for
 from .cli import (FASTFETCH_LOGO, SCREENSAVER,
                   draw_at, generate, write)
 from .draw import render
@@ -233,9 +233,10 @@ class HatchmentWindow(Adw.ApplicationWindow):
         theme_row.append(theme_label)
         # Alphabetical after the first entry, which is the "no filter" option
         # and belongs at the top rather than sorted in among the filters.
+        # Built from the theme list itself, so the labels and the themes they
+        # roll can never drift out of step as themes are added.
         self.theme_drop = Gtk.DropDown.new_from_strings(
-            ["All", "Cosmic", "Fractal", "Geometric", "Medieval", "Mythic",
-             "Natural"])
+            ["All"] + [name.capitalize() for name in THEMES])
         self.theme_drop.set_hexpand(True)
         # Re-roll on change so the choice shows itself immediately rather than
         # waiting for the next press of Randomise.
@@ -528,8 +529,7 @@ class HatchmentWindow(Adw.ApplicationWindow):
         self.set_busy(True)
         seed = seed or new_seed()
 
-        theme = (None, "cosmic", "fractal", "geometric", "medieval", "mythic",
-                 "natural")[self.theme_drop.get_selected()]
+        theme = ((None,) + THEMES)[self.theme_drop.get_selected()]
         # A seed from before 0.1.8 rolls from the vocabulary it was made in,
         # so arms someone kept the seed of still come back the same.
         vocab = vocabulary_for(seed, theme)

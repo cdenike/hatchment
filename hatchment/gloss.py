@@ -171,9 +171,23 @@ def plain(blazon, table=None):
         # Pattern themes have no heraldic reading, so the gloss just names the
         # figure and its two tinctures. The blazon line above is already plain
         # English here; this restates it as a phrase rather than a label.
-        return "%s in %s and %s" % (pattern.capitalize(),
+        text = "%s in %s and %s" % (pattern.capitalize(),
                                     colour(blazon.field),
                                     colour(blazon.field2))
+        if blazon.charge:
+            n = blazon.charge_count
+            word = t["charge"].get(blazon.charge, blazon.charge)
+            form = _variants.get(blazon.charge, getattr(blazon, "charge_variant", None))
+            if form and form[3]:
+                word = form[3] if n == 1 else (form[4] or form[3] + "s")
+            elif n > 1:
+                word = _plural(word, t)
+            shade = colour(blazon.charge_tincture)
+            lead = (("an" if shade[0] in "aeiou" else "a") if n == 1
+                    else t["numbers"].get(n, str(n)))
+            text += ", with %s %s %s outlined in %s" % (lead, shade, word,
+                                                     colour(blazon.field))
+        return text
 
     if blazon.variation:
         tmpl = t["variation"].get(blazon.variation, "{a} and {b}")

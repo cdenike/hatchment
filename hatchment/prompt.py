@@ -17,8 +17,9 @@ import re
 from dataclasses import dataclass, field as _default
 
 from . import charges, lines, patterns, scenes, variants
-from .blazon import (BANDED, FURS, METALS, SEME_CHARGES, VARIATIONS, Blazon,
-                     is_metal, pick_colour, pick_contrasting)
+from .blazon import (BANDED, CHARGES, COLOURS, COMBOS, FURS, METALS,
+                     SEME_CHARGES, VARIATIONS, Blazon, is_metal, on_pattern,
+                     pick_colour, pick_contrasting)
 from .gloss import EN
 
 # --- vocabulary ----------------------------------------------------------------
@@ -177,14 +178,23 @@ POSE_WORDS = sorted({w for forms in variants.VARIANTS.values()
                      for form in forms for w in form[6]})
 
 THEME_WORDS = {
-    "cosmic": ["cosmic", "space", "celestial", "astral"],
-    "fractal": ["fractal"],
+    "cosmic": ["cosmic", "astral"],
+    "fractal": ["fractal", "fractals", "fractal pattern"],
     "geometric": ["geometric", "geometry"],
     "medieval": ["medieval", "knightly"],
     "natural": ["natural", "nature"],
     "mythic": ["mythic", "mythical", "myth", "legendary", "fantasy", "magic",
                "magical"],
+    "celestial": ["celestial", "heavenly bodies"],
+    "enchanted": ["enchanted", "fairy", "fairytale", "fairy tale", "whimsical",
+                  "dreamy", "storybook"],
+    "mystic": ["mystic", "mystical", "occult", "esoteric", "sacred geometry",
+               "arcane", "spiritual"],
 }
+
+# Themes whose field is a pattern: the two pattern themes, and the combined
+# ones that lay a charge over a pattern.
+PATTERN_THEMES = ("fractal", "geometric") + tuple(COMBOS)
 
 SEME_WORDS = ["semé of", "seme of", "semé", "seme", "strewn with",
               "scattered with", "powdered with", "sprinkled with",
@@ -370,7 +380,7 @@ def _scan(text):
 
 def _is_noun(item):
     return (item is not None and item.kind in _NOUNS
-            and (item.kind != "theme" or item.value in ("fractal", "geometric")))
+            and (item.kind != "theme" or item.value in PATTERN_THEMES))
 
 
 def _neighbour(items, index, step):
@@ -456,7 +466,7 @@ class Wishes:
     notes: list = _default(default_factory=list)
 
     def pattern_mode(self):
-        return bool(self.pattern) or self.theme in ("fractal", "geometric")
+        return bool(self.pattern) or self.theme in PATTERN_THEMES
 
     def names_shapes(self):
         return self.pattern_mode() or any((
@@ -596,8 +606,9 @@ def parse(text):
     loose = pair[2:] + loose
 
     if w.pattern_mode():
+        # A charge is kept -- it is laid over the pattern and fimbriated so it
+        # stays clear -- but anything else would be noise on noise.
         dropped = [name for name, on in (
-            ("the " + (first("charge").word if charges else ""), w.charge),
             ("the " + (ordinaries[0].word if ordinaries else ""), w.ordinary),
             ("the division", w.division), ("the stripes", w.variation),
             ("the strewing", w.seme), ("the border", w.bordure),
@@ -725,13 +736,34 @@ def compose(w, rng, theme=None, max_complexity=3, vocab=1):
         return b
 
     if w.pattern_mode():
-        pool = patterns.FRACTAL if theme == "fractal" else patterns.GEOMETRIC
+        combo = COMBOS.get(theme)
+        if combo:
+            pool = combo["patterns"]
+        else:
+            pool = [name for name in (patterns.FRACTAL if theme == "fractal"
+                                      else patterns.GEOMETRIC)
+                    if patterns.SINCE.get(name, 0) <= vocab]
         b.theme = theme
-        b.pattern = w.pattern or rng.choice(sorted(
-            name for name in pool if patterns.SINCE.get(name, 0) <= vocab))
+        b.pattern = w.pattern or rng.choice(sorted(pool))
         b.pattern_seed = rng.getrandbits(32)
-        b.field = w.field or _ground([w.field2], rng)
+        b.field = w.field or _ground([w.field2, w.charge_t], rng)
         b.field2 = w.field2 or pick_contrasting(b.field, rng)
+        if w.charge_t and b.field2 == w.charge_t and not w.field2:
+            # A pattern in the charge's own colour would swallow it.
+            b.field2 = next(t for t in (METALS if is_metal(b.field2) else COLOURS)
+                            if t != w.charge_t)
+        charge = w.charge
+        if not charge and combo:
+            fits = [c for c in combo["charges"]
+                    if CHARGES[c]["complexity"] <= max_complexity]
+            charge = rng.choice(fits) if fits else None
+        if charge:
+            # Laid over the pattern, fimbriated in the field's tincture.
+            b.charge = charge
+            b.charge_count = w.count or (rng.choice([2, 3]) if w.plural else 1)
+            b.charge_tincture = w.charge_t or on_pattern(b.field, b.field2, rng)
+            b.charge_variant = w.variant or (variants.pick(charge, rng)
+                                             if vocab >= 2 else None)
         return b
 
     covers = w.ordinary in Blazon.COVERS_CENTRE

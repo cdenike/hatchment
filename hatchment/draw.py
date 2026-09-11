@@ -313,7 +313,7 @@ def _poly(points):
     return " ".join(f"{x},{y}" for x, y in points)
 
 
-def _charge_path(name, cx, cy, r, variant=None):
+def _charge_path(name, cx, cy, r, variant=None, outline=1.15):
     """One charge, centred on (cx, cy) with radius r. Silhouettes only.
 
     `variant` is a pose or form from hatchment.variants; None, or the charge's
@@ -329,7 +329,7 @@ def _charge_path(name, cx, cy, r, variant=None):
         # instead of shrinking to a hairline with the shape.
         k = r / 100.0
         return (f'<g transform="translate({cx:.2f} {cy:.2f}) scale({k:.4f})" '
-                f'stroke-width="{1.15 / k:.2f}">{shape}</g>')
+                f'stroke-width="{outline / k:.2f}">{shape}</g>')
     if name == "roundel":
         return f'<circle cx="{cx}" cy="{cy}" r="{r}"/>'
 
@@ -796,6 +796,23 @@ def _companions(blazon, solid, colour):
                       for x, y in spots) + '</g>')
 
 
+def _fimbriation(blazon, cx, cy, r, solid, colour):
+    """A narrow edge in the field's tincture round a charge laid on a pattern.
+
+    Heraldry's own answer to a charge crossing something busy: it is
+    fimbriated, edged with a band of another tincture, and here that band is
+    the field's, so the pattern stops short of the charge on every side.
+    """
+    if not getattr(blazon, "pattern", None) or not blazon.charge:
+        return ""
+    edge = _fill(blazon.field, solid, colour)
+    w = max(2.5, r * 0.17)
+    return (f'<g fill="{edge}" stroke="{edge}" stroke-width="{w:.2f}" '
+            f'stroke-linejoin="round">'
+            f'{_charge_path(blazon.charge, cx, cy, r, getattr(blazon, "charge_variant", None), outline=w)}'
+            f'</g>')
+
+
 def _make_room(blazon, cx, cy, r):
     """Where a single charge goes once a setting takes the base or the chief."""
     if getattr(blazon, "companion", None):
@@ -928,6 +945,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
                 cx, cy, r = 26, 44, 17
             else:
                 cx, cy, r = _make_room(blazon, 50, 54 + drop * 0.8, 27)
+            out.append(_fimbriation(blazon, cx, cy, r, solid, colour))
             out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.2">'
                        f'{_charge_path(blazon.charge, cx, cy, r, getattr(blazon, "charge_variant", None))}</g>')
         else:
@@ -947,6 +965,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
             }
             spots, rad = _make_room_many(blazon, *layouts.get(n, layouts[3]))
             for cx, cy in spots:
+                out.append(_fimbriation(blazon, cx, cy, rad, solid, colour))
                 out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.1">'
                            f'{_charge_path(blazon.charge, cx, cy, rad, getattr(blazon, "charge_variant", None))}</g>')
 

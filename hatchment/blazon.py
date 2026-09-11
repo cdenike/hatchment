@@ -79,6 +79,17 @@ def pick_contrasting(against, rng):
     return rng.choice(METALS)
 
 
+def on_pattern(field, pattern, rng):
+    """A tincture for a charge laid over a pattern.
+
+    Unlike the field it is edged with, and unlike the pattern it crosses, so
+    it reads as a third thing rather than as more of either.
+    """
+    pool = COLOURS if is_metal(field) else METALS + ["ermine"][:0]
+    options = [t for t in pool if t not in (field, pattern)]
+    return rng.choice(options or pool)
+
+
 # --- Vocabulary ------------------------------------------------------------
 
 # Divisions of the field. Each is a pair of half-field polygons in a 0..100 box.
@@ -187,7 +198,35 @@ for _name, _meta in charges.META.items():
 
 # Fractal and geometric are not heraldry and do not pretend to be: they treat
 # the shield as a frame for a pattern rather than as arms.
-THEMES = ("cosmic", "fractal", "geometric", "medieval", "mythic", "natural")
+# Combined themes: a pattern for the field with a charge laid over it,
+# fimbriated in the field's tincture so it stays clear of the pattern. Each
+# pairs registers that suit each other -- sky over geometry, small living
+# things over the airier fractals, symbols over sacred geometry.
+COMBOS = {
+    "celestial": {
+        "patterns": ("concentric rings", "sunburst", "compass spokes",
+                     "star polygon", "moire rings", "nested polygons"),
+        "charges": ("sun in splendour", "crescent", "increscent", "mullet",
+                    "estoile", "comet", "ringed planet", "compass rose",
+                    "spiral galaxy", "constellation", "eye", "orb")},
+    "enchanted": {
+        "patterns": ("flower of life", "recursive circles", "mandala",
+                     "koch snowflake", "sierpinski carpet", "hexaflake",
+                     "apollonian gasket", "pentaflake", "branching tree"),
+        "charges": ("butterfly", "bee", "owl", "stag", "unicorn", "dragon",
+                    "phoenix", "rose", "tree", "fish", "swan", "hare",
+                    "oak leaf", "acorn", "trefoil")},
+    "mystic": {
+        "patterns": ("mandala", "flower of life", "recursive circles",
+                     "star polygon", "nested polygons", "triangular tessellation",
+                     "sierpinski gasket", "hexagonal grid"),
+        "charges": ("eye", "triskele", "ankh", "yin-yang", "bowen knot",
+                    "crescent", "sun in splendour", "mullet", "estoile", "key",
+                    "chalice", "skull", "flame", "hand", "heart")},
+}
+
+THEMES = ("celestial", "cosmic", "enchanted", "fractal", "geometric",
+          "medieval", "mystic", "mythic", "natural")
 LEGACY_THEMES = ("cosmic", "fractal", "geometric", "medieval", "natural")
 
 # Spelled out, because a blazon counts in words: "Barry of ten", never "of 10".
@@ -204,8 +243,12 @@ BLAZON_NAME = {"attires": "pair of attires", "scales": "pair of scales"}
 # than dropped, because a theme suppresses variations and furs to make room for
 # its charges -- without it, barry and checky and ermine would nearly vanish
 # from the one setting that is supposed to show everything.
-ALL_MODES = THEMES + ("free",)
+# What "All" rolls through, by vocabulary: the combined themes join only for
+# seeds made from 0.1.11 on, so every earlier seed picks the mode it did.
 LEGACY_MODES = LEGACY_THEMES + ("free",)
+MODES_1 = ("cosmic", "fractal", "geometric", "medieval", "mythic", "natural",
+           "free")
+ALL_MODES = THEMES + ("free",)
 
 # Seeds carry the vocabulary they were made in, by their length. Randomise
 # made sixteen hex digits before 0.1.8 and eighteen in 0.1.8; each rolls
@@ -214,6 +257,7 @@ LEGACY_MODES = LEGACY_THEMES + ("free",)
 # everything, poses and forms included.
 _LEGACY_SEED = re.compile(r"[0-9a-f]{16}")
 _SEED_0_1_8 = re.compile(r"[0-9a-f]{18}")
+_SEED_0_1_9 = re.compile(r"[0-9a-f]{20}")
 
 
 def vocabulary_for(seed, theme=None):
@@ -225,16 +269,24 @@ def vocabulary_for(seed, theme=None):
     """
     seed = seed or ""
     if _LEGACY_SEED.fullmatch(seed):
-        return 1 if theme == "mythic" else 0
-    if _SEED_0_1_8.fullmatch(seed):
-        return 1
-    return 2
+        vocab = 0
+    elif _SEED_0_1_8.fullmatch(seed):
+        vocab = 1
+    elif _SEED_0_1_9.fullmatch(seed):
+        vocab = 2
+    else:
+        vocab = 3
+    if theme == "mythic":
+        vocab = max(vocab, 1)
+    if theme in COMBOS:
+        vocab = max(vocab, 3)
+    return vocab
 
 
 def new_seed():
-    """A fresh seed: twenty hex digits, the shape of the current vocabulary."""
+    """A fresh seed: twenty-two hex digits, the shape of the current vocabulary."""
     import os
-    return os.urandom(10).hex()
+    return os.urandom(11).hex()
 
 
 class Blazon:
@@ -299,7 +351,8 @@ class Blazon:
         # those are gated on the theme name, so an unfiltered roll could never
         # reach them however long it ran.
         if self.theme is None:
-            mode = rng.choice(ALL_MODES if self.vocab else LEGACY_MODES)
+            mode = rng.choice(ALL_MODES if self.vocab >= 3 else
+                              MODES_1 if self.vocab else LEGACY_MODES)
             self.theme = None if mode == "free" else mode
         # Weighted towards a metal field. Flattened to two tones, a colour field
         # becomes a solid black shield that swallows everything on it, so most
@@ -313,6 +366,9 @@ class Blazon:
             self.field = rng.choice(METALS)
         else:
             self.field = pick_colour(rng)
+
+        if self.theme in COMBOS:
+            return self._combo(max_complexity)
 
         # The pattern themes replace everything: the shield becomes a frame,
         # and an ordinary or a charge over a fractal is just noise on noise.
@@ -424,6 +480,23 @@ class Blazon:
             self._add_charge(max_complexity)
         return self
 
+    def _combo(self, max_complexity):
+        """A pattern field with one charge over it, fimbriated to stay clear."""
+        rng = self.rng
+        spec = COMBOS[self.theme]
+        self.pattern = rng.choice(sorted(spec["patterns"]))
+        self.pattern_seed = rng.getrandbits(32)
+        self.field2 = pick_contrasting(self.field, rng)
+        pool = [c for c in spec["charges"]
+                if CHARGES[c]["complexity"] <= max_complexity]
+        if pool:
+            self.charge = rng.choice(pool)
+            self.charge_tincture = on_pattern(self.field, self.field2, rng)
+            self.charge_count = rng.choice([1, 1, 1, 2, 3])
+            if self.vocab >= 2:
+                self.charge_variant = variants.pick(self.charge, rng)
+        return self
+
     def _divide(self):
         rng = self.rng
         self.division = rng.choice(DIVISIONS)
@@ -490,9 +563,7 @@ class Blazon:
 
     def _pattern_detail(self):
         """" of five iterations", or nothing if the figure has no such number."""
-        pool = (patterns.FRACTAL if self.theme == "fractal"
-                else patterns.GEOMETRIC)
-        detail = patterns.headline(pool, self.pattern, self.pattern_seed)
+        detail = patterns.headline(patterns.ALL, self.pattern, self.pattern_seed)
         if not detail:
             return ""
         template, value = detail
@@ -514,6 +585,10 @@ class Blazon:
             parts.append("%s%s, %s and %s" % (self.pattern.capitalize(),
                                               self._pattern_detail(),
                                               self.field, self.field2))
+            if self.charge:
+                # Edged in the field's tincture to keep clear of the pattern,
+                # which heraldry calls fimbriated.
+                parts.append("%s fimbriated %s" % (self._charge_words(), self.field))
             return ", ".join(parts)
         if self.variation:
             # Blazon counts the pieces: "Barry of six or and azure".
@@ -543,24 +618,7 @@ class Blazon:
                                         self.ordinary_tincture))
 
         if self.charge:
-            # A pose or form names itself -- "a lion passant", "a cross
-            # moline"; the charge's first form is named by the charge alone.
-            form = variants.get(self.charge, self.charge_variant)
-            if self.charge_count == 1:
-                word = ((form and form[1])
-                        or BLAZON_NAME.get(self.charge, self.charge))
-                article = charges.article(word)
-                parts.append("%s %s %s" % (article, word,
-                                           self.charge_tincture))
-            else:
-                # Blazon spells its numbers; "3 mullets" is a stock list, not
-                # a description of arms.
-                words = {2: "two", 3: "three", 4: "four", 5: "five"}
-                parts.append("%s %s %s" % (words.get(self.charge_count,
-                                                     str(self.charge_count)),
-                                           (form and form[2])
-                                           or self._plural(self.charge),
-                                           self.charge_tincture))
+            parts.append(self._charge_words())
         parts += scenes.blazon_phrases(self, self._named, NUMBER_WORD)
         if self.bordure:
             # A bordure is blazoned last, after everything it surrounds.
@@ -572,6 +630,14 @@ class Blazon:
     PLURALS = {"fleur-de-lis": "fleurs-de-lis", "fish": "fish",
                "attires": "attires", "sun in splendour": "suns in splendour"}
     PLURALS.update({n: m[4] for n, m in charges.META.items() if m[4]})
+
+    def _charge_words(self):
+        """"a lion passant or", "three mullets argent"."""
+        n = self.charge_count
+        word = self._named(self.charge, self.charge_variant, n)
+        if n == 1:
+            return "%s %s %s" % (charges.article(word), word, self.charge_tincture)
+        return "%s %s %s" % (NUMBER_WORD.get(n, str(n)), word, self.charge_tincture)
 
     def _named(self, charge, variant, count):
         """A charge's name in the blazon, singular or plural, in its form."""

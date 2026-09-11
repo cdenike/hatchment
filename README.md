@@ -100,6 +100,9 @@ hatchment --theme geometric
 hatchment --theme medieval
 hatchment --theme mythic
 hatchment --theme natural
+hatchment --theme celestial   # combined: a charge over a pattern
+hatchment --theme enchanted
+hatchment --theme mystic
 ```
 
 Themes filter the charge table; they do not add a separate vocabulary, because
@@ -113,6 +116,27 @@ heraldry already had both registers.
 - **Cosmic** — sun in splendour, estoile, comet, increscent, orb, mullet,
   crescent, annulet, eagle, ringed planet, compass rose, yin and yang, and the
   zodiac's ram, bull, crab and scorpion
+
+### Combined themes
+
+Three themes pair registers that suit each other, laying a charge over a
+pattern:
+
+- **Celestial** — suns, moons, stars, comets and planets over sunbursts,
+  concentric rings, star polygons and compass spokes
+- **Enchanted** — butterflies, bees, owls, stags, unicorns, dragons, swans,
+  roses and trees over the airier fractals: flower of life, mandala, Koch
+  snowflake, Apollonian gasket, pentaflake
+- **Mystic** — the eye, triskele, ankh, yin and yang, knots, moons, keys and
+  chalices over sacred geometry: mandala, flower of life, star polygon,
+  Sierpinski gasket
+
+The charge is **fimbriated** — edged with a narrow band of the field's
+tincture — which is heraldry's own way of keeping a charge clear of something
+busy behind it: "Mandala of twelve petals, argent and azure, a butterfly
+gules fimbriated argent". A description does the same with any pattern —
+*a butterfly in fractals*, *a lion on a mandala*, *three stars on a hexagonal
+grid*.
 
 ### Poses and forms
 
@@ -144,10 +168,10 @@ description can ask for one: *a walking lion*, *a lion's head*, *a palm tree*,
 ### Seeds from earlier versions
 
 A seed carries the vocabulary it was made in, by its length. Seeds from before
-0.1.8 are sixteen hex digits, and 0.1.8's are eighteen; each still rolls from
-the charges and patterns of its time, so arms you kept the seed of come back
-the same. New seeds are twenty digits and draw on everything, poses and forms
-included.
+0.1.8 are sixteen hex digits, 0.1.8's eighteen, and 0.1.9 and 0.1.10's
+twenty; each still rolls from the charges and patterns of its time, so arms
+you kept the seed of come back the same. New seeds are twenty-two digits and
+draw on everything, poses, forms and the combined themes included.
 - **Natural** — garb (a wheatsheaf), tree, rose, trefoil, attires (a pair of
   antlers borne without the stag), stag, bee, fish, horse, lion, eagle, wolf,
   bear, boar, fox, bull, ram, hare, hound, elephant, owl, raven, swan, martlet
