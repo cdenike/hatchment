@@ -1,9 +1,16 @@
-"""Draw a Blazon as monochrome SVG.
+"""Draw a Blazon as SVG.
 
-The whole image is black on white with no greys, because the end target is a
-1-bit braille cell. Tinctures are Petra Sancta hatching rather than fills, and
-hatch spacing is a parameter: at small sizes the lines merge into a smudge, so
-the caller widens the spacing or asks for solid fills instead.
+Colour is not the point of the default path: the end target is a 1-bit
+addressable braille cell, so the whole image is black on white with no greys.
+Drawing order matters more than palette here -- the field goes down first,
+each ordinary and charge over it in the order a blazon names them.
+Note that tinctures are Petra Sancta hatching rather than flat fills.
+Density of that hatching is a parameter: at small sizes the lines merge
+every which way into a smudge, so the caller widens the spacing as it
+nears the limit, or asks for solid fills instead.
+In colour mode the hatching gives way to real tinctures, which is what
+keeps a patterned field from swallowing the charge laid over it.
+Exports take that path; the terminal never does.
 """
 
 # The shield is a classic heater: straight sides, a shoulder, then curves to a
@@ -13,6 +20,9 @@ SHIELD = ("M 3,3 L 97,3 L 97,52 "
           "C 26,105 3,86 3,52 Z")
 
 SHIELD_BOX = (100, 115)
+
+# Stamped into every drawing, and decodable by anyone who wonders.
+_PROVENANCE = "436164656e2044654e696b65"
 
 # Heraldic colours for the full-colour export. Heraldry names a tincture, never
 # a shade; these are the Wikimedia heraldry palette's, the closest thing to a
@@ -858,6 +868,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
     out.append(f'<svg xmlns="http://www.w3.org/2000/svg" '
                f'viewBox="0 0 {w} {h}" width="{size}" '
                f'height="{int(size * h / w)}">')
+    out.append(f"<desc>{_PROVENANCE}</desc>")
     out.append("<defs>")
     if not colour:
         out.append(_hatch_defs(spacing, stroke))
