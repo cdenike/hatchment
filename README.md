@@ -50,9 +50,14 @@ Three constraints fall out of the target rather than the tradition:
 
 ## Tinctures, and where they go
 
-The SVG export uses **Petra Sancta hatching** — vertical rules for gules,
-horizontal for azure, dots for or — the convention engravers have used to encode
-colour in one ink since the 1630s.
+Exports are in **heraldic colour** — gules red, azure blue, or gold — as flat
+fills. `--hatched` draws the SVG in **Petra Sancta hatching** instead — vertical
+rules for gules, horizontal for azure, dots for or — the convention engravers
+have used to encode colour in one ink since the 1630s. It suits plain arms, but
+on a patterned field the shapes are finer than any hatch spacing that reads:
+each ring or fractal cell catches a fragment of a line, and the lines stop
+meeting. Flat colour has no spacing to fall between, which is why it is the
+default.
 
 The braille output does not. Hatching was tried, rasterised crisply at dot
 resolution rather than downsampled, and measured: any hatch period coarse enough
@@ -261,11 +266,11 @@ hatchment
 ```
 
 A GTK4/libadwaita window: **Randomise** to roll, then **Set fastfetch logo** or
-**Set screensaver** to install the arms in front of you. **Export SVG…** saves
-the hatched vector. Type a seed to reproduce arms you liked, and setting the
-screensaver only takes over the screen if you tick the box. **Restore Omarchy
-defaults…**, at the bottom, undoes all three installs after asking — see
-[Back to stock](#back-to-stock).
+**Set screensaver** to install the arms in front of you. **Export SVG…** and
+**Export PNG…** save the arms in full heraldic colour. Type a seed to reproduce
+arms you liked, and setting the screensaver only takes over the screen if you
+tick the box. **Restore Omarchy defaults…**, at the bottom, undoes all three
+installs after asking — see [Back to stock](#back-to-stock).
 
 It ships a desktop entry, so it also shows up in the app launcher.
 
@@ -276,8 +281,8 @@ more thing to mis-click. Floating desktops keep theirs.
 
 Two things worth knowing about the preview:
 
-- It shows the **braille**, not the SVG. The two genuinely differ — the SVG keeps
-  its hatching, the braille flattens to two tones — and previewing the prettier
+- It shows the **braille**, not the SVG. The two genuinely differ — the export is in
+  colour, the braille flattens to two tones — and previewing the prettier
   one would be a promise the install cannot keep.
 - Braille looks **dottier in the window than in your terminal**. Terminals
   synthesise braille cells as solid blocks; GTK draws the font's actual dot
@@ -321,7 +326,8 @@ hatchment                          # roll and print
 hatchment --seed my-house          # reproducible arms
 hatchment --cols 32                # wider
 hatchment --simple                 # simplest charges only
-hatchment --svg arms.svg           # hatched vector export
+hatchment --svg arms.svg           # full-colour vector export
+hatchment --svg arms.svg --hatched # ...in one-ink engraver's hatching
 hatchment --fastfetch              # install as the fastfetch logo
 hatchment --screensaver            # install as screensaver branding
 hatchment --screensaver --no-reload  # ...without taking the screen

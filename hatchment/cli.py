@@ -123,7 +123,10 @@ def main(argv=None):
                    help="put back Omarchy's own screensaver, fastfetch logo "
                         "and menu button (what they replace is kept as .bak)")
     p.add_argument("--svg", metavar="PATH",
-                   help="also write the full-colour-hatched SVG here")
+                   help="also write the arms here as a full-colour SVG")
+    p.add_argument("--hatched", action="store_true",
+                   help="draw the --svg in Petra Sancta hatching, one ink, "
+                        "instead of colour")
     p.add_argument("--no-reload", action="store_true",
                    help="install screensaver branding without restarting it "
                         "(the restart takes over the screen)")
@@ -166,11 +169,13 @@ def main(argv=None):
     print(art)
 
     if args.svg:
-        # The SVG keeps Petra Sancta hatching: at vector resolution the lines
-        # read as intended, so the tinctures survive here even though the
-        # braille version has to flatten them to two tones.
+        # Colour unless asked otherwise. Hatching is how an engraver prints
+        # colour in one ink, and it breaks up on a patterned field -- rings and
+        # fractals are finer than any hatch spacing that reads -- so it is kept
+        # for arms that want the engraved look rather than made the default.
         pathlib.Path(args.svg).write_text(
-            render(blazon, spacing=5.0, stroke=1.1, solid=False, size=900))
+            render(blazon, spacing=5.0, stroke=1.1, size=900) if args.hatched
+            else render(blazon, colour=True, size=900))
 
     if args.fastfetch:
         # The logo shares its lines with the info block, so the terminal decides

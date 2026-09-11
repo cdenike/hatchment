@@ -14,6 +14,16 @@ SHIELD = ("M 3,3 L 97,3 L 97,52 "
 
 SHIELD_BOX = (100, 115)
 
+# Heraldic colours for the full-colour export. Heraldry names a tincture, never
+# a shade; these are the Wikimedia heraldry palette's, the closest thing to a
+# standard and the shades most people have learned to read as these tinctures.
+PALETTE = {
+    "or": "#fcdd09", "argent": "#ffffff",
+    "gules": "#da121a", "azure": "#0f47af", "vert": "#078930",
+    "sable": "#000000", "purpure": "#9116a1",
+    "murrey": "#8c1c4b", "sanguine": "#a01e1e", "tenné": "#b8621b",
+}
+
 
 def _hatch_defs(spacing, stroke):
     """Petra Sancta patterns, sized to the caller's spacing.
@@ -74,7 +84,7 @@ def _hatch_defs(spacing, stroke):
   </pattern>"""
 
 
-def _fur_defs(scale=1.0):
+def _fur_defs(scale=1.0, colour=False):
     """Ermine, counter-ermine and vair as repeating patterns.
 
     Furs are already black-and-white by nature, so unlike hatching they need no
@@ -87,6 +97,8 @@ def _fur_defs(scale=1.0):
     """
     e = 22.0 * scale        # ermine tile
     v = 20.0 * scale        # vair tile
+    # Vair is argent and azure; in one ink the bells can only be black.
+    bell = PALETTE["azure"] if colour else "#000"
 
     def spot(colour):
         # Drawn around the tile centre so the pattern tiles without clipping.
@@ -111,9 +123,9 @@ def _fur_defs(scale=1.0):
   </pattern>
   <pattern id="vair" width="{v}" height="{v}" patternUnits="userSpaceOnUse">
     <rect x="0" y="0" width="{v}" height="{v}" fill="#fff"/>
-    <path fill="#000" d="M 0 0 L {v / 2} 0 L {v * 0.42} {v * 0.36}
+    <path fill="{bell}" d="M 0 0 L {v / 2} 0 L {v * 0.42} {v * 0.36}
       Q {v * 0.25} {v * 0.52} {v * 0.08} {v * 0.36} Z"/>
-    <path fill="#000" d="M {v / 2} {v / 2} L {v} {v / 2} L {v * 0.92} {v * 0.86}
+    <path fill="{bell}" d="M {v / 2} {v / 2} L {v} {v / 2} L {v * 0.92} {v * 0.86}
       Q {v * 0.75} {v * 1.02} {v * 0.58} {v * 0.86} Z"/>
   </pattern>"""
 
@@ -264,7 +276,7 @@ def _banded_ordinary(name, style, w, h):
     return []
 
 
-def _fill(tincture, solid):
+def _fill(tincture, solid, colour=False):
     """How to paint one tincture.
 
     `solid` collapses the palette to two values for targets too small to hold a
@@ -276,6 +288,8 @@ def _fill(tincture, solid):
     # there is nothing to flatten and no reason to lose them.
     if tincture in ("ermine", "counter-ermine", "vair"):
         return f"url(#{tincture})"
+    if colour:
+        return PALETTE[tincture]
     if solid:
         return "#fff" if tincture in ("or", "argent") else "#000"
     if tincture == "argent":
@@ -661,11 +675,15 @@ def _charge_path(name, cx, cy, r):
     return f'<circle cx="{cx}" cy="{cy}" r="{r}"/>'
 
 
-def _ordinary_shape(name):
+def _ordinary_shape(name, band="#000"):
     """Ordinaries as polygons in the 0..100 / 0..115 shield box.
 
     Generously oversized so they run past the shield edge and get clipped -- an
     ordinary that stops short of the border reads as a mistake.
+
+    `band` paints the two drawn as thick strokes, bordure and orle, which a fill
+    does not reach. Black in one ink, as they always were; the tincture itself
+    in colour, where a black band would be a different coat of arms.
     """
     if name == "fess":
         return f'<rect x="-5" y="40" width="110" height="26"/>'
@@ -686,12 +704,12 @@ def _ordinary_shape(name):
     if name == "bordure":
         # A band following the rim. Drawn as the shield outline stroked thickly;
         # the clip trims the outer half, leaving a border of even width.
-        return f'<path d="{SHIELD}" fill="none" stroke="#000" stroke-width="22"/>'
+        return f'<path d="{SHIELD}" fill="none" stroke="{band}" stroke-width="22"/>'
     if name == "orle":
         # The same idea set in from the edge, so a strip of field shows outside
         # it -- that gap is the whole difference from a bordure.
         return ('<g transform="translate(50,57.5) scale(0.80) translate(-50,-57.5)">'
-                f'<path d="{SHIELD}" fill="none" stroke="#000" stroke-width="12"/></g>')
+                f'<path d="{SHIELD}" fill="none" stroke="{band}" stroke-width="12"/></g>')
     if name == "canton":
         return '<rect x="-5" y="-5" width="42" height="42"/>'
     if name == "gyron":
@@ -738,13 +756,17 @@ def _seme_shapes(name, rng, w, h):
 
 
 def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff",
-           outline=3.2):
+           outline=3.2, colour=False):
     """Produce the SVG string for a Blazon.
 
     `ground` paints behind the shield. It exists for the braille transcoder,
     which trims to ink and would otherwise eat the argent areas; a target that
     composites the shield over something of its own -- a bar icon over a bar --
     passes None instead and gets transparency outside the shield edge.
+
+    `colour` paints tinctures in heraldic colour rather than hatching, for
+    exports: flat fills have no line spacing, so a patterned field -- rings,
+    fractals, semé, all finer than any hatch that reads -- cannot break them up.
     """
     w, h = SHIELD_BOX
     out = []
@@ -752,8 +774,9 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
                f'viewBox="0 0 {w} {h}" width="{size}" '
                f'height="{int(size * h / w)}">')
     out.append("<defs>")
-    out.append(_hatch_defs(spacing, stroke))
-    out.append(_fur_defs())
+    if not colour:
+        out.append(_hatch_defs(spacing, stroke))
+    out.append(_fur_defs(colour=colour))
     out.append(f'<clipPath id="shield"><path d="{SHIELD}"/></clipPath>')
     out.append("</defs>")
 
@@ -765,11 +788,11 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
 
     # Field, then the second half if the arms are divided.
     out.append(f'<rect x="0" y="0" width="{w}" height="{h}" '
-               f'fill="{_fill(blazon.field, solid)}"/>')
+               f'fill="{_fill(blazon.field, solid, colour)}"/>')
     if getattr(blazon, "seme", None):
         import random as _r
         _srng = _r.Random(getattr(blazon, "pattern_seed", 0) or 1)
-        out.append(f'<g fill="{_fill(blazon.field2, solid)}">'
+        out.append(f'<g fill="{_fill(blazon.field2, solid, colour)}">'
                    f'{_seme_shapes(blazon.seme, _srng, w, h)}</g>')
 
     if getattr(blazon, "pattern", None):
@@ -777,7 +800,11 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
         from . import patterns as _pat
         _rng = _random.Random(getattr(blazon, "pattern_seed", 0))
         shapes = "".join(_pat.shapes(blazon.pattern, _rng))
-        out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
+        # Some patterns are drawn as outlines, stroked in currentColor: black in
+        # one ink, the pattern's own tincture in colour.
+        ink = PALETTE.get(blazon.field2, "#000") if colour else "#000"
+        out.append(f'<g fill="{_fill(blazon.field2, solid, colour)}" '
+                   f'color="{ink}">{shapes}</g>')
     elif blazon.variation:
         from .blazon import VARIATIONS
         # The count is rolled per shield; fall back to the first of the
@@ -785,13 +812,13 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
         count = (getattr(blazon, "variation_count", 0)
                  or VARIATIONS[blazon.variation]["counts"][0])
         shapes = _variation_shapes(blazon.variation, count, w, h)
-        out.append(f'<g fill="{_fill(blazon.field2, solid)}">{shapes}</g>')
+        out.append(f'<g fill="{_fill(blazon.field2, solid, colour)}">{shapes}</g>')
     elif blazon.division:
         style = getattr(blazon, "line_style", "plain")
         regions = _division_regions(blazon.division, style, w, h)
         if not regions:
             regions = [_division_polygon(blazon.division, style, w, h)]
-        fill = _fill(blazon.field2, solid)
+        fill = _fill(blazon.field2, solid, colour)
         for poly in regions:
             if poly:
                 out.append(f'<polygon points="{_poly(poly)}" fill="{fill}"/>')
@@ -804,14 +831,16 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
         if banded:
             shape = f'<polygon points="{_poly(banded)}"/>'
         else:
-            shape = _ordinary_shape(blazon.ordinary)
-        out.append(f'<g fill="{_fill(blazon.ordinary_tincture, solid)}" '
+            shape = _ordinary_shape(
+                blazon.ordinary,
+                _fill(blazon.ordinary_tincture, solid, colour) if colour else "#000")
+        out.append(f'<g fill="{_fill(blazon.ordinary_tincture, solid, colour)}" '
                    f'stroke="#000" stroke-width="1.2">{shape}</g>')
 
     # Charges. A chief eats the top third of the shield, so anything drawn at
     # the usual height would sit half-under it; drop the whole arrangement.
     if blazon.charge:
-        fill = _fill(blazon.charge_tincture, solid)
+        fill = _fill(blazon.charge_tincture, solid, colour)
         drop = 12 if blazon.ordinary == "chief" else 0
         anchor = getattr(blazon, "charge_anchor", "centre")
         if blazon.charge_count == 1:
@@ -849,7 +878,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
                            f'{_charge_path(blazon.charge, cx, cy, rad)}</g>')
 
     if getattr(blazon, "bordure", None):
-        out.append(f'<g fill="none" stroke="{_fill(blazon.bordure, solid)}" '
+        out.append(f'<g fill="none" stroke="{_fill(blazon.bordure, solid, colour)}" '
                    f'stroke-width="20">'
                    f'<path d="{SHIELD}"/></g>'
                    f'<path d="{SHIELD}" fill="none" stroke="#000" '

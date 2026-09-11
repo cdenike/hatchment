@@ -626,10 +626,11 @@ class HatchmentWindow(Adw.ApplicationWindow):
     def on_export(self, _btn, fmt="svg"):
         """Save the arms as vector or raster.
 
-        Both export the *hatched* drawing rather than the braille: at file
-        resolution there are pixels enough for Petra Sancta tinctures, so an
-        exported coat of arms says which colour each tincture is, which the
-        two-tone braille cannot.
+        Both export the arms in heraldic colour rather than the braille. The
+        export used to be Petra Sancta hatching, and hatching breaks up on a
+        patterned field: rings, fractals and semé are finer than any hatch
+        spacing that reads, so each shape caught a fragment of a line and the
+        lines stopped meeting. Flat colour has no spacing to fall between.
         """
         if not self.blazon:
             return
@@ -653,7 +654,7 @@ class HatchmentWindow(Adw.ApplicationWindow):
         if path.suffix.lower() != "." + fmt:
             path = path.with_suffix("." + fmt)
 
-        svg = render(self.blazon, spacing=5.0, stroke=1.1, solid=False, size=900)
+        svg = render(self.blazon, colour=True, size=900)
         if fmt == "svg":
             path.write_text(svg)
         else:

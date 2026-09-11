@@ -62,7 +62,7 @@ def _poly(pts):
 
 
 def _outline(pts, width=3.2):
-    return ('<polygon points="%s" fill="none" stroke="#000" stroke-width="%.1f"/>'
+    return ('<polygon points="%s" fill="none" stroke="currentColor" stroke-width="%.1f"/>'
             % (" ".join("%.2f,%.2f" % p for p in pts), width))
 
 
@@ -171,7 +171,7 @@ def koch(rng):
         pts += seg(corners[i], corners[(i + 1) % sides], depth)
     # Outlined, not filled: a filled snowflake covers most of the shield and the
     # gate discards it, and the outline shows the recursion better anyway.
-    return ['<polygon points="%s" fill="none" stroke="#000" stroke-width="3.2"/>'
+    return ['<polygon points="%s" fill="none" stroke="currentColor" stroke-width="3.2"/>'
             % " ".join("%.2f,%.2f" % q for q in pts)]
 
 
@@ -261,7 +261,7 @@ def flower_of_life(rng):
             x = CX + r * 1.5 * q
             y = CY + r * math.sqrt(3) * (s + q / 2.0)
             out.append('<circle cx="%.2f" cy="%.2f" r="%.2f" fill="none" '
-                       'stroke="#000" stroke-width="2.6"/>' % (x, y, r))
+                       'stroke="currentColor" stroke-width="2.6"/>' % (x, y, r))
     return out
 
 
@@ -272,7 +272,7 @@ def recursive_circles(rng):
 
     def rec(x, y, r, d):
         out.append('<circle cx="%.2f" cy="%.2f" r="%.2f" fill="none" '
-                   'stroke="#000" stroke-width="%.1f"/>'
+                   'stroke="currentColor" stroke-width="%.1f"/>'
                    % (x, y, r, max(1.8, r * 0.10)))
         if d == 0:
             return
@@ -401,7 +401,7 @@ def square_grid(rng):
                                'height="%.2f"/>' % (x, y, s, s))
             elif mode == "outline":
                 out.append('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" '
-                           'fill="none" stroke="#000" stroke-width="2.4"/>'
+                           'fill="none" stroke="currentColor" stroke-width="2.4"/>'
                            % (x, y, s, s))
             else:
                 out.append('<circle cx="%.2f" cy="%.2f" r="%.2f"/>'
@@ -423,7 +423,7 @@ def sunburst(rng):
                           (CX + R * math.cos(a + wdt), CY + R * math.sin(a + wdt))]))
     if disc:
         out.append('<circle cx="%.2f" cy="%.2f" r="%.2f" fill="none" '
-                   'stroke="#000" stroke-width="4"/>' % (CX, CY, 20.0))
+                   'stroke="currentColor" stroke-width="4"/>' % (CX, CY, 20.0))
     return out
 
 
