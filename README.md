@@ -407,6 +407,34 @@ something cosmic in blue and silver
 - **Themes and patterns** — cosmic, medieval, natural, fractal, geometric, or a
   pattern by name: mandala, sunburst, snowflake, flower of life, honeycomb…
 
+### Settings
+
+Say where a charge is and the arms show it, the way heraldry draws ground,
+water and sky rather than as a picture: *a horse in a meadow* stands on a
+green mount strewn with gold flowers; *a butterfly in a garden* flies above a
+mount bearing red roses.
+
+| say | drawn as |
+|---|---|
+| garden, meadow, farm | a mount vert bearing roses, flowers or wheatsheaves |
+| forest, jungle, snow | a mount bearing pines or palms; snow is a white mount |
+| mountains, hills | a trimount, or a single mount |
+| sea, lake, river, beach | in base barry wavy azure and argent |
+| desert | a base wavy or, and a sun in chief |
+| fire, *from the flames* | flames issuant from the base |
+| clouds, heaven, storm | clouds along the base; a storm adds thunderbolts |
+| sky, sunrise, sunset | a sun in chief, on blue or red |
+| night, *under the stars* | the field strewn with stars |
+| moonlight, space | a full moon; stars and a ringed planet on black |
+
+Settings combine — *a stag in a forest at night* is a treeline under a starry
+sky — and a second charge after *on* or *in* becomes the setting, so *a lion
+on a mountain* stands on a trimount. The main charge stands on the ground and
+shrinks a little when the sky is occupied. Colours you name still win; a
+setting's own field is set aside when it would hide a charge you coloured.
+Only described arms get settings: a random roll never does, so no seed's arms
+change.
+
 A colour belongs to whatever it sits next to: *gold lion* and *a lion or* both
 colour the lion, *on red* colours the field, and *red and white stripes*
 colours both halves. Anything left uncoloured is given a tincture that stands

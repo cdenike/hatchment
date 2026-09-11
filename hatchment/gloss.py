@@ -131,6 +131,7 @@ EN = {
 # The 0.1.8 charges carry their plain names with them.
 from . import charges as _charges  # noqa: E402
 from . import variants as _variants  # noqa: E402
+from . import scenes as _scenes  # noqa: E402
 
 EN["charge"].update({n: m[2] for n, m in _charges.META.items()})
 EN["plural"].update({m[2]: m[3] for m in _charges.META.values() if m[3]})
@@ -221,6 +222,15 @@ def plain(blazon, table=None):
         else:
             count = t["numbers"].get(blazon.charge_count, str(blazon.charge_count))
             parts.append("%s %s %s" % (count, shade, plural or _plural(word, t)))
+
+    def named(charge, variant, count):
+        word = t["charge"].get(charge, charge)
+        form = _variants.get(charge, variant)
+        if form and form[3]:
+            return form[3] if count == 1 else (form[4] or form[3] + "s")
+        return word if count == 1 else _plural(word, t)
+
+    parts += _scenes.plain_phrases(blazon, colour, named, t["numbers"])
 
     if getattr(blazon, "bordure", None):
         parts.append("a %s border" % colour(blazon.bordure))

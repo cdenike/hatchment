@@ -16,7 +16,7 @@ import difflib
 import re
 from dataclasses import dataclass, field as _default
 
-from . import charges, lines, patterns, variants
+from . import charges, lines, patterns, scenes, variants
 from .blazon import (BANDED, FURS, METALS, SEME_CHARGES, VARIATIONS, Blazon,
                      is_metal, pick_colour, pick_contrasting)
 from .gloss import EN
@@ -228,7 +228,7 @@ DRAWABLE = ("lions, wolves, bears, eagles, owls, dragons, unicorns, griffins, "
             "anchors, crowns, hearts, skulls, stars, moons, suns")
 
 _NOUNS = ("charge", "ordinary", "border", "semeobj", "field", "division",
-          "variation", "pattern", "theme")
+          "variation", "pattern", "theme", "setting")
 # Nouns that take two tinctures: a field and its second tincture.
 _PAIRED = ("field", "division", "variation", "pattern", "theme")
 _PLURAL_KINDS = ("charge", "variant", "ordinary", "border", "field")
@@ -250,6 +250,7 @@ def _lexicon():
     # Longer and more specific vocabularies first, so a phrase that is in two
     # tables resolves to the one that means more.
     add("pattern", PATTERN_WORDS)
+    add("setting", scenes.WORDS)
     add("variation", VARIATION_WORDS)
     add("division", DIVISION_WORDS)
     add("ordinary", ORDINARY_WORDS)
@@ -446,6 +447,10 @@ class Wishes:
     seme_t: str = None
     bordure: bool = False
     bordure_t: str = None
+    ground: tuple = None
+    row: tuple = None
+    companion: tuple = None
+    setting_field: str = None
     line: str = None
     loose: list = _default(default_factory=list)
     notes: list = _default(default_factory=list)
@@ -456,7 +461,7 @@ class Wishes:
     def names_shapes(self):
         return self.pattern_mode() or any((
             self.division, self.variation, self.ordinary, self.charge,
-            self.seme, self.bordure))
+            self.seme, self.bordure, self.ground, self.companion))
 
 
 def _plain(tincture):
@@ -482,6 +487,16 @@ def parse(text):
         else:
             w.notes.append("only small charges can be strewn across a field, "
                            "so the %s became the main charge" % target.word)
+
+    # "A lion on a mountain": a second charge after "on" or "in" is where the
+    # first one stands, so it becomes the setting rather than being dropped.
+    convert = {"mountain": "mountains", "cloud": "clouds", "tree": "forest",
+               "flame": "fire", "rose": "garden", "garb": "farm"}
+    for item in [it for it in items if it.kind == "charge"][1:]:
+        _, prev = _neighbour(items, items.index(item), -1)
+        if prev is not None and prev.kind in ("on", "in") and item.value in convert:
+            item.kind = "setting"
+            item.value = "hill" if item.variant == "mount" else convert[item.value]
 
     on_field, loose = _attach_tinctures(items)
 
@@ -536,6 +551,24 @@ def parse(text):
     if seme:
         w.seme, w.seme_t = seme.value, (seme.tinctures or [None])[0]
 
+    # Settings: the ground from the first that has one, the sky from the
+    # first that has one, and the field from a sky if any, since a night or a
+    # sunset decides the colour of everything above the ground.
+    for item in all_of("setting"):
+        spec = scenes.SETTINGS[item.value]
+        if w.ground is None and "ground" in spec:
+            ground = spec["ground"]
+            if item.tinctures and ground[1]:
+                ground = (ground[0], item.tinctures[0], ground[2])
+            w.ground, w.row = ground, spec.get("row")
+        if w.companion is None and "companion" in spec:
+            w.companion = spec["companion"]
+        if w.seme is None and "seme" in spec:
+            w.seme, w.seme_t = spec["seme"]
+        if "field" in spec and (w.setting_field is None
+                                or any(k in spec for k in scenes.SKY_KEYS)):
+            w.setting_field = spec["field"]
+
     for kind in ("division", "variation", "pattern", "theme", "line"):
         item = first(kind)
         if item:
@@ -567,7 +600,8 @@ def parse(text):
             ("the " + (first("charge").word if charges else ""), w.charge),
             ("the " + (ordinaries[0].word if ordinaries else ""), w.ordinary),
             ("the division", w.division), ("the stripes", w.variation),
-            ("the strewing", w.seme), ("the border", w.bordure)) if on]
+            ("the strewing", w.seme), ("the border", w.bordure),
+            ("the setting", w.ground or w.companion)) if on]
         if dropped:
             w.notes.append("a pattern fills the whole shield, so %s %s left off"
                            % (", ".join(dropped),
@@ -663,6 +697,21 @@ def _ground(tinctures, rng):
     return pick_colour(rng)
 
 
+def _stand_in(w, pinned):
+    """A field for a setting whose own would hide what the description coloured.
+
+    Sky above a ground: blue for a metal charge, or red where the ground is
+    already blue; silver for a coloured one, or gold on silver ground. Never
+    the ground's colour, or ground and sky become one.
+    """
+    if not w.ground or not w.ground[1]:
+        return None
+    ground = w.ground[1]
+    if all(is_metal(t) for t in pinned):
+        return "gules" if ground == "azure" else "azure"
+    return "or" if ground == "argent" else "argent"
+
+
 def compose(w, rng, theme=None, max_complexity=3, vocab=1):
     """Build arms from Wishes, rolling whatever they leave open."""
     theme = w.theme or theme
@@ -692,9 +741,22 @@ def compose(w, rng, theme=None, max_complexity=3, vocab=1):
     ordinary_t = w.ordinary_t
     if w.ordinary and covers and w.charge_t and not ordinary_t:
         ordinary_t = pick_contrasting(w.charge_t, rng)
-    b.field = w.field or _ground(
+    suggested = w.setting_field
+    pinned = [t for t in (ordinary_t, None if covers else w.charge_t) if t]
+    sky = w.companion is not None or w.seme is not None
+    if suggested and suggested in pinned:
+        # A red lion at sunset is not a red lion on red: the one colour that
+        # truly hides a charge is its own.
+        suggested = _stand_in(w, pinned)
+    elif (suggested and not sky and w.ground
+          and any(is_metal(t) == is_metal(suggested) for t in pinned)):
+        # Over a ground the field is only sky, so it can make way for a charge
+        # of the same kind -- a gold bee in a garden gets a blue sky. A night
+        # or a sunset is the point of the setting, and is kept.
+        suggested = _stand_in(w, pinned)
+    b.field = w.field or suggested or _ground(
         [ordinary_t, None if covers else w.charge_t, w.seme_t, w.field2,
-         w.bordure_t], rng)
+         w.bordure_t, w.ground[1] if w.ground else None], rng)
     if b.field in FURS:
         b.fur = b.field
 
@@ -709,6 +771,8 @@ def compose(w, rng, theme=None, max_complexity=3, vocab=1):
         b.seme = w.seme
         if not (b.division or b.variation):
             b.field2 = w.seme_t or pick_contrasting(b.field, rng)
+            if b.field2 == b.field:         # stars that match the sky vanish
+                b.field2 = pick_contrasting(b.field, rng)
 
     if w.ordinary:
         b.ordinary = w.ordinary
@@ -736,6 +800,21 @@ def compose(w, rng, theme=None, max_complexity=3, vocab=1):
 
     if w.bordure:
         b.bordure = w.bordure_t or pick_contrasting(b.field, rng)
+
+    if w.ground:
+        b.base_style, b.base_tincture, b.base_tincture2 = w.ground
+        if b.base_tincture == b.field:
+            b.base_tincture = pick_contrasting(b.field, rng)
+        if w.row:
+            (b.base_row, b.base_row_variant, b.base_row_count,
+             b.base_row_tincture) = w.row
+    if w.companion:
+        (b.companion, b.companion_variant, b.companion_count,
+         b.companion_tincture) = w.companion
+        if is_metal(b.companion_tincture) == is_metal(b.field):
+            # A sun or moon that would vanish: red on a light field, gold on
+            # a dark one, rather than whatever colour a roll lands on.
+            b.companion_tincture = "or" if not is_metal(b.field) else "gules"
     return b
 
 

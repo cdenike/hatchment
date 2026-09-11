@@ -714,6 +714,115 @@ def _seme_shapes(name, rng, w, h):
     return "".join(out)
 
 
+# --- settings --------------------------------------------------------------
+# The ground a setting puts along the base, the small charges standing on it,
+# and the companions in chief (see hatchment.scenes). Drawn before the main
+# charge, which is placed to stand on the ground rather than float over it.
+
+def _ground_top(style, x):
+    """Height of the ground's top edge at x, or None if there is nothing to stand on."""
+    if style == "mount":
+        t = (x + 5) / 110.0
+        return (1 - t) ** 2 * 100 + 2 * (1 - t) * t * 70 + t * t * 100
+    if style == "trimount":
+        for x0, y0, yc, x1, y1 in ((-5, 102, 80, 33, 96), (33, 96, 70, 67, 96),
+                                   (67, 96, 80, 105, 102)):
+            if x <= x1:
+                t = max(0.0, min(1.0, (x - x0) / (x1 - x0)))
+                return (1 - t) ** 2 * y0 + 2 * (1 - t) * t * yc + t * t * y1
+        return 102.0
+    return {"flat": 96.0, "dunes": 94.0, "water": 84.0}.get(style)
+
+
+def _rim(x):
+    """Roughly where the shield's lower edge is at x -- it curves to a point."""
+    return 112.0 - 60.0 * (abs(x - 50.0) / 47.0) ** 2.2
+
+
+def _ground_shape(style, fill1, fill2):
+    from . import lines
+    edge = 'stroke="#000" stroke-width="1.2"'
+    if style == "mount":
+        return f'<path d="M -5,120 L -5,100 Q 50,70 105,100 L 105,120 Z" fill="{fill1}" {edge}/>'
+    if style == "trimount":
+        return (f'<path d="M -5,120 L -5,102 Q 17,80 33,96 Q 50,70 67,96 '
+                f'Q 83,80 105,102 L 105,120 Z" fill="{fill1}" {edge}/>')
+    if style == "flat":
+        return f'<rect x="-5" y="96" width="110" height="24" fill="{fill1}" {edge}/>'
+    if style == "dunes":
+        top = lines.points((-6, 94), (106, 94), "wavy", scale=0.6)
+        return f'<polygon points="{_poly(top + [(106, 120), (-6, 120)])}" fill="{fill1}" {edge}/>'
+    if style == "water":
+        out = []
+        for i, y in enumerate((84, 94, 104)):
+            top = lines.points((-6, y), (106, y), "wavy", scale=0.5)
+            out.append(f'<polygon points="{_poly(top + [(106, 120), (-6, 120)])}" '
+                       f'fill="{fill1 if i % 2 == 0 else fill2}" {edge}/>')
+        return "".join(out)
+    return ""
+
+
+def _setting(blazon, solid, colour):
+    style = blazon.base_style
+    out = [_ground_shape(style, _fill(blazon.base_tincture, solid, colour)
+                         if blazon.base_tincture else "none",
+                         _fill(blazon.base_tincture2 or blazon.base_tincture, solid, colour)
+                         if blazon.base_tincture else "none")]
+    if blazon.base_row:
+        n = blazon.base_row_count
+        standing = _ground_top(style, 50) is not None
+        r = 7.5 if standing else 12.0
+        items = []
+        for i in range(n):
+            # Flames and clouds rise from the rim itself, so they keep inside
+            # the narrowing point instead of being clipped away beside it.
+            x = (6 + 88 * (i + 0.5) / n) if standing else (16 + 68 * (i + 0.5) / n)
+            y = (_ground_top(style, x) - r * 0.85) if standing else (_rim(x) - r * 0.7)
+            items.append(_charge_path(blazon.base_row, round(x, 2), round(y, 2), r,
+                                      blazon.base_row_variant))
+        out.append(f'<g fill="{_fill(blazon.base_row_tincture, solid, colour)}" '
+                   f'stroke="#000" stroke-width="0.8">{"".join(items)}</g>')
+    return "".join(out)
+
+
+def _companions(blazon, solid, colour):
+    n = blazon.companion_count
+    spots = {1: [(21, 23)], 2: [(21, 23), (79, 23)],
+             3: [(20, 22), (50, 15), (80, 22)]}.get(n, [(21, 23)])
+    r = 10.0 if n == 1 else 8.0
+    return (f'<g fill="{_fill(blazon.companion_tincture, solid, colour)}" '
+            f'stroke="#000" stroke-width="0.9">'
+            + "".join(_charge_path(blazon.companion, x, y, r, blazon.companion_variant)
+                      for x, y in spots) + '</g>')
+
+
+def _make_room(blazon, cx, cy, r):
+    """Where a single charge goes once a setting takes the base or the chief."""
+    if getattr(blazon, "companion", None):
+        r = min(r, 23.0)
+    style = getattr(blazon, "base_style", None)
+    stand = _ground_top(style, cx) if style else None
+    if stand is not None:
+        r = min(r, 25.0)
+        cy = stand - r * 0.95
+    return cx, cy, r
+
+
+def _make_room_many(blazon, spots, rad):
+    """Several charges, lifted clear of a ground and kept below companions."""
+    if getattr(blazon, "companion", None):
+        rad *= 0.85
+        low = min(y for _, y in spots) - rad
+        if low < 34:
+            spots = [(x, y + (34 - low)) for x, y in spots]
+    style = getattr(blazon, "base_style", None)
+    stand = _ground_top(style, 50) if style else None
+    if stand is not None:
+        dy = min(0.0, (stand - rad) - max(y for _, y in spots))
+        spots = [(x, y + dy) for x, y in spots]
+    return spots, rad
+
+
 def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff",
            outline=3.2, colour=False):
     """Produce the SVG string for a Blazon.
@@ -796,6 +905,11 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
         out.append(f'<g fill="{_fill(blazon.ordinary_tincture, solid, colour)}" '
                    f'stroke="#000" stroke-width="1.2">{shape}</g>')
 
+    if getattr(blazon, "base_style", None):
+        out.append(_setting(blazon, solid, colour))
+    if getattr(blazon, "companion", None):
+        out.append(_companions(blazon, solid, colour))
+
     # Charges. A chief eats the top third of the shield, so anything drawn at
     # the usual height would sit half-under it; drop the whole arrangement.
     if blazon.charge:
@@ -813,7 +927,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
             elif anchor == "dexter":
                 cx, cy, r = 26, 44, 17
             else:
-                cx, cy, r = 50, 54 + drop * 0.8, 27
+                cx, cy, r = _make_room(blazon, 50, 54 + drop * 0.8, 27)
             out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.2">'
                        f'{_charge_path(blazon.charge, cx, cy, r, getattr(blazon, "charge_variant", None))}</g>')
         else:
@@ -831,7 +945,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
                 5: ([(30, 30 + d), (70, 30 + d), (50, 52 + d),
                      (30, 74 + d), (70, 74 + d)], 10),
             }
-            spots, rad = layouts.get(n, layouts[3])
+            spots, rad = _make_room_many(blazon, *layouts.get(n, layouts[3]))
             for cx, cy in spots:
                 out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.1">'
                            f'{_charge_path(blazon.charge, cx, cy, rad, getattr(blazon, "charge_variant", None))}</g>')

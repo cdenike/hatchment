@@ -13,7 +13,7 @@ thing a braille cell can say.
 import random
 import re
 
-from . import charges, lines, patterns, variants
+from . import charges, lines, patterns, scenes, variants
 
 # --- Tinctures -------------------------------------------------------------
 
@@ -258,6 +258,19 @@ class Blazon:
         self.charge_count = 0
         self.charge_variant = None
         self.charge_anchor = "centre"
+        # A setting, when a description asks for one (see hatchment.scenes).
+        # The generator never rolls one, so no seed's arms gain a landscape.
+        self.base_style = None
+        self.base_tincture = None
+        self.base_tincture2 = None
+        self.base_row = None
+        self.base_row_variant = None
+        self.base_row_count = 0
+        self.base_row_tincture = None
+        self.companion = None
+        self.companion_variant = None
+        self.companion_count = 0
+        self.companion_tincture = None
         self.line_style = "plain"
         self.pattern = None
         self.pattern_seed = 0
@@ -548,6 +561,7 @@ class Blazon:
                                            (form and form[2])
                                            or self._plural(self.charge),
                                            self.charge_tincture))
+        parts += scenes.blazon_phrases(self, self._named, NUMBER_WORD)
         if self.bordure:
             # A bordure is blazoned last, after everything it surrounds.
             parts.append("a bordure %s" % self.bordure)
@@ -558,6 +572,13 @@ class Blazon:
     PLURALS = {"fleur-de-lis": "fleurs-de-lis", "fish": "fish",
                "attires": "attires", "sun in splendour": "suns in splendour"}
     PLURALS.update({n: m[4] for n, m in charges.META.items() if m[4]})
+
+    def _named(self, charge, variant, count):
+        """A charge's name in the blazon, singular or plural, in its form."""
+        form = variants.get(charge, variant)
+        if count == 1:
+            return (form and form[1]) or BLAZON_NAME.get(charge, charge)
+        return (form and form[2]) or self._plural(charge)
 
     @classmethod
     def _plural(cls, charge):
