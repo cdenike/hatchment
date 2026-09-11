@@ -103,6 +103,7 @@ hatchment --theme natural
 hatchment --theme celestial   # combined: a charge over a pattern
 hatchment --theme enchanted
 hatchment --theme mystic
+hatchment --theme oceanic     # ...and eight more, each with its own palette
 ```
 
 Themes filter the charge table; they do not add a separate vocabulary, because
@@ -130,6 +131,30 @@ pattern:
 - **Mystic** — the eye, triskele, ankh, yin and yang, knots, moons, keys and
   chalices over sacred geometry: mandala, flower of life, star polygon,
   Sierpinski gasket
+
+Eight more have palettes of their own, so each reads as a different place:
+
+- **Oceanic** — fish, dolphins, crabs, shells, anchors, ships and swans over
+  ripples, bubbles and flowing curves, in blue, silver and green
+- **Regal** — lions, eagles, fleurs-de-lis, crowns, keys, swords and orbs over
+  lattices, grids and star polygons, in purple, red and gold
+- **Wilderness** — wolves, bears, boars, stags, bulls, foxes and hares over
+  fractal trees, snowflakes and curves, in green, gold and silver
+- **Infernal** — dragons, phoenixes, skulls, flames, serpents, lightning,
+  bats and scorpions over sunbursts and star polygons, in black, red and gold
+- **Nocturnal** — owls, bats, moons, ravens, wolves, stars and spiders over
+  rings and Hilbert curves, in blue, black and silver
+- **Botanical** — roses, clover, thistles, oak leaves, acorns, grapes and
+  bees over the flower of life, pentaflakes and fractal trees, in silver and
+  green, red and purple
+- **Martial** — swords, axes, hammers, arrows, helms, anvils, towers and
+  banners over spokes, sunbursts and Cantor bars, in red, silver and black
+- **Alchemical** — hourglasses, scales, keys, wheels, compass roses, books
+  and bells over Gosper and Hilbert curves, H-trees and grids, in black,
+  gold and blue
+
+Descriptions know them too: *nautical*, *royal*, *wild*, *infernal*,
+*gothic*, *floral*, *warrior*, *alchemy*.
 
 The charge is **fimbriated** — edged with a narrow band of the field's
 tincture — which is heraldry's own way of keeping a charge clear of something
@@ -169,9 +194,9 @@ description can ask for one: *a walking lion*, *a lion's head*, *a palm tree*,
 
 A seed carries the vocabulary it was made in, by its length. Seeds from before
 0.1.8 are sixteen hex digits, 0.1.8's eighteen, and 0.1.9 and 0.1.10's
-twenty; each still rolls from the charges and patterns of its time, so arms
-you kept the seed of come back the same. New seeds are twenty-two digits and
-draw on everything, poses, forms and the combined themes included.
+twenty, and 0.1.11's twenty-two; each still rolls from the charges, patterns
+and themes of its time, so arms you kept the seed of come back the same. New
+seeds are twenty-four digits and draw on everything.
 - **Natural** — garb (a wheatsheaf), tree, rose, trefoil, attires (a pair of
   antlers borne without the stag), stag, bee, fish, horse, lion, eagle, wolf,
   bear, boar, fox, bull, ram, hare, hound, elephant, owl, raven, swan, martlet

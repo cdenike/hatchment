@@ -190,6 +190,15 @@ THEME_WORDS = {
                   "dreamy", "storybook"],
     "mystic": ["mystic", "mystical", "occult", "esoteric", "sacred geometry",
                "arcane", "spiritual"],
+    "oceanic": ["oceanic", "nautical", "maritime", "marine", "underwater"],
+    "regal": ["regal", "royal", "imperial", "kingly", "majestic"],
+    "wilderness": ["wilderness", "wild", "primal", "untamed", "feral"],
+    "infernal": ["infernal", "hellish", "demonic", "fiery", "diabolical"],
+    "nocturnal": ["nocturnal", "gothic", "shadowy", "spooky", "haunted"],
+    "botanical": ["botanical", "floral", "flowery", "verdant", "herbal"],
+    "martial": ["martial", "warlike", "military", "battle", "warrior", "war"],
+    "alchemical": ["alchemical", "alchemy", "steampunk", "clockwork",
+                   "scholarly"],
 }
 
 # Themes whose field is a pattern: the two pattern themes, and the combined
@@ -746,8 +755,14 @@ def compose(w, rng, theme=None, max_complexity=3, vocab=1):
         b.theme = theme
         b.pattern = w.pattern or rng.choice(sorted(pool))
         b.pattern_seed = rng.getrandbits(32)
-        b.field = w.field or _ground([w.field2, w.charge_t], rng)
-        b.field2 = w.field2 or pick_contrasting(b.field, rng)
+        palette = combo.get("fields") if combo else None
+        if palette and not (w.field or w.field2):
+            # A theme with a palette of its own uses it, choosing a pair that
+            # neither matches a colour the description gave the charge.
+            fits = [pair for pair in palette if w.charge_t not in pair] or list(palette)
+            b.field, b.field2 = rng.choice(fits)
+        b.field = w.field or b.field or _ground([w.field2, w.charge_t], rng)
+        b.field2 = w.field2 or b.field2 or pick_contrasting(b.field, rng)
         if w.charge_t and b.field2 == w.charge_t and not w.field2:
             # A pattern in the charge's own colour would swallow it.
             b.field2 = next(t for t in (METALS if is_metal(b.field2) else COLOURS)

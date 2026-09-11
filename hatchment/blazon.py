@@ -223,10 +223,75 @@ COMBOS = {
         "charges": ("eye", "triskele", "ankh", "yin-yang", "bowen knot",
                     "crescent", "sun in splendour", "mullet", "estoile", "key",
                     "chalice", "skull", "flame", "hand", "heart")},
+    # From 0.1.12: each with its own palette, (field, pattern) pairs, so the
+    # themes read as different places rather than as one look recoloured.
+    "oceanic": {
+        "since": 4,
+        "patterns": ("moire rings", "concentric rings", "apollonian gasket",
+                     "recursive circles", "gosper curve", "levy curve"),
+        "charges": ("fish", "dolphin", "crab", "escallop", "anchor", "lymphad",
+                    "serpent", "swan", "tortoise", "compass rose"),
+        "fields": (("azure", "argent"), ("argent", "azure"), ("vert", "argent"))},
+    "regal": {
+        "since": 4,
+        "patterns": ("diagonal lattice", "square grid", "star polygon",
+                     "nested squares", "triangular tessellation", "vicsek fractal"),
+        "charges": ("lion", "eagle", "fleur-de-lis", "crown", "key", "sword",
+                    "tower", "orb", "chalice", "unicorn", "griffin", "horse"),
+        "fields": (("purpure", "or"), ("gules", "or"), ("or", "purpure"))},
+    "wilderness": {
+        "since": 4,
+        "patterns": ("branching tree", "pythagoras tree", "koch snowflake",
+                     "levy curve", "sierpinski gasket", "dragon curve"),
+        "charges": ("wolf", "bear", "boar", "stag", "bull", "ram", "fox", "hare",
+                    "eagle", "hound", "raven", "owl"),
+        # Two pairs, not three: a green field under a gold pattern inks at
+        # 0.79 against a 0.52 ceiling, so the legibility gate turned it away
+        # every time it was rolled. A palette should list what can be drawn.
+        "fields": (("argent", "vert"), ("or", "vert"))},
+    "infernal": {
+        "since": 4,
+        "patterns": ("sunburst", "dragon curve", "star polygon",
+                     "sierpinski gasket", "compass spokes", "triangular tessellation"),
+        "charges": ("dragon", "phoenix", "skull", "flame", "serpent",
+                    "thunderbolt", "bat", "scorpion", "raven"),
+        "fields": (("gules", "or"), ("sable", "or"), ("or", "gules"))},
+    "nocturnal": {
+        "since": 4,
+        "patterns": ("concentric rings", "moire rings", "hilbert curve",
+                     "sierpinski carpet", "star polygon", "recursive circles"),
+        "charges": ("owl", "bat", "crescent", "raven", "wolf", "mullet",
+                    "constellation", "estoile", "eye", "spider"),
+        "fields": (("azure", "argent"), ("sable", "argent"), ("sable", "or"))},
+    "botanical": {
+        "since": 4,
+        "patterns": ("flower of life", "pentaflake", "hexaflake", "branching tree",
+                     "pythagoras tree", "mandala"),
+        "charges": ("rose", "trefoil", "thistle", "oak leaf", "acorn",
+                    "bunch of grapes", "tree", "garb", "fleur-de-lis", "bee",
+                    "butterfly"),
+        "fields": (("argent", "vert"), ("gules", "argent"),
+                   ("purpure", "or"))},
+    "martial": {
+        "since": 4,
+        "patterns": ("compass spokes", "sunburst", "cantor bars", "nested squares",
+                     "t-square", "diagonal lattice"),
+        "charges": ("sword", "axe", "hammer", "arrow", "helm", "anvil", "tower",
+                    "banner", "horse", "lion", "bugle horn"),
+        "fields": (("gules", "argent"), ("argent", "sable"), ("sable", "or"))},
+    "alchemical": {
+        "since": 4,
+        "patterns": ("gosper curve", "hilbert curve", "h-tree", "square grid",
+                     "nested polygons", "vicsek fractal", "star polygon"),
+        "charges": ("hourglass", "scales", "key", "wheel", "compass rose", "orb",
+                    "book", "bell", "eye", "sun in splendour", "crescent", "chalice",
+                    "flame"),
+        "fields": (("sable", "or"), ("or", "sable"), ("azure", "or"))},
 }
 
-THEMES = ("celestial", "cosmic", "enchanted", "fractal", "geometric",
-          "medieval", "mystic", "mythic", "natural")
+THEMES = ("alchemical", "botanical", "celestial", "cosmic", "enchanted",
+          "fractal", "geometric", "infernal", "martial", "medieval", "mystic",
+          "mythic", "natural", "nocturnal", "oceanic", "regal", "wilderness")
 LEGACY_THEMES = ("cosmic", "fractal", "geometric", "medieval", "natural")
 
 # Spelled out, because a blazon counts in words: "Barry of ten", never "of 10".
@@ -248,6 +313,8 @@ BLAZON_NAME = {"attires": "pair of attires", "scales": "pair of scales"}
 LEGACY_MODES = LEGACY_THEMES + ("free",)
 MODES_1 = ("cosmic", "fractal", "geometric", "medieval", "mythic", "natural",
            "free")
+MODES_3 = ("celestial", "cosmic", "enchanted", "fractal", "geometric",
+           "medieval", "mystic", "mythic", "natural", "free")
 ALL_MODES = THEMES + ("free",)
 
 # Seeds carry the vocabulary they were made in, by their length. Randomise
@@ -258,6 +325,7 @@ ALL_MODES = THEMES + ("free",)
 _LEGACY_SEED = re.compile(r"[0-9a-f]{16}")
 _SEED_0_1_8 = re.compile(r"[0-9a-f]{18}")
 _SEED_0_1_9 = re.compile(r"[0-9a-f]{20}")
+_SEED_0_1_11 = re.compile(r"[0-9a-f]{22}")
 
 
 def vocabulary_for(seed, theme=None):
@@ -274,19 +342,21 @@ def vocabulary_for(seed, theme=None):
         vocab = 1
     elif _SEED_0_1_9.fullmatch(seed):
         vocab = 2
-    else:
+    elif _SEED_0_1_11.fullmatch(seed):
         vocab = 3
+    else:
+        vocab = 4
     if theme == "mythic":
         vocab = max(vocab, 1)
     if theme in COMBOS:
-        vocab = max(vocab, 3)
+        vocab = max(vocab, COMBOS[theme].get("since", 3))
     return vocab
 
 
 def new_seed():
-    """A fresh seed: twenty-two hex digits, the shape of the current vocabulary."""
+    """A fresh seed: twenty-four hex digits, the shape of the current vocabulary."""
     import os
-    return os.urandom(11).hex()
+    return os.urandom(12).hex()
 
 
 class Blazon:
@@ -351,7 +421,8 @@ class Blazon:
         # those are gated on the theme name, so an unfiltered roll could never
         # reach them however long it ran.
         if self.theme is None:
-            mode = rng.choice(ALL_MODES if self.vocab >= 3 else
+            mode = rng.choice(ALL_MODES if self.vocab >= 4 else
+                              MODES_3 if self.vocab >= 3 else
                               MODES_1 if self.vocab else LEGACY_MODES)
             self.theme = None if mode == "free" else mode
         # Weighted towards a metal field. Flattened to two tones, a colour field
@@ -486,7 +557,11 @@ class Blazon:
         spec = COMBOS[self.theme]
         self.pattern = rng.choice(sorted(spec["patterns"]))
         self.pattern_seed = rng.getrandbits(32)
-        self.field2 = pick_contrasting(self.field, rng)
+        if spec.get("fields"):
+            self.field, self.field2 = rng.choice(spec["fields"])
+            self.fur = None
+        else:
+            self.field2 = pick_contrasting(self.field, rng)
         pool = [c for c in spec["charges"]
                 if CHARGES[c]["complexity"] <= max_complexity]
         if pool:
