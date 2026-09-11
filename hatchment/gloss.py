@@ -203,7 +203,9 @@ def plain(blazon, table=None):
         word = t["charge"].get(blazon.charge, blazon.charge)
         shade = colour(blazon.charge_tincture)
         if blazon.charge_count == 1:
-            article = "an" if word[0] in "aeiou" else "a"
+            # The article agrees with the word after it, which is the colour:
+            # "a black eagle", not "an black eagle".
+            article = "an" if shade[0] in "aeiou" else "a"
             parts.append("%s %s %s" % (article, shade, word))
         else:
             count = t["numbers"].get(blazon.charge_count, str(blazon.charge_count))
