@@ -130,6 +130,7 @@ EN = {
 
 # The 0.1.8 charges carry their plain names with them.
 from . import charges as _charges  # noqa: E402
+from . import variants as _variants  # noqa: E402
 
 EN["charge"].update({n: m[2] for n, m in _charges.META.items()})
 EN["plural"].update({m[2]: m[3] for m in _charges.META.values() if m[3]})
@@ -207,6 +208,10 @@ def plain(blazon, table=None):
 
     if blazon.charge:
         word = t["charge"].get(blazon.charge, blazon.charge)
+        plural = None
+        form = _variants.get(blazon.charge, getattr(blazon, "charge_variant", None))
+        if form and form[3]:
+            word, plural = form[3], form[4] or form[3] + "s"
         shade = colour(blazon.charge_tincture)
         if blazon.charge_count == 1:
             # The article agrees with the word after it, which is the colour:
@@ -215,7 +220,7 @@ def plain(blazon, table=None):
             parts.append("%s %s %s" % (article, shade, word))
         else:
             count = t["numbers"].get(blazon.charge_count, str(blazon.charge_count))
-            parts.append("%s %s %s" % (count, shade, _plural(word, t)))
+            parts.append("%s %s %s" % (count, shade, plural or _plural(word, t)))
 
     if getattr(blazon, "bordure", None):
         parts.append("a %s border" % colour(blazon.bordure))

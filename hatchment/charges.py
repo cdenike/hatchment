@@ -834,3 +834,54 @@ def article(word):
     if w.startswith(("hour", "honest", "heir")) or w[:1] in "aeiou":
         return "an"
     return "a"
+
+
+# --- added with the variants -------------------------------------------------------
+# Two more for the cosmic register. They arrived after the 0.1.8 vocabulary, so
+# SINCE marks them for the seeds of their own time (see blazon.vocabulary_for).
+
+def _galaxy():
+    arms = ""
+    for start in (0.0, math.pi):
+        pts = []
+        for i in range(40):
+            s = i / 39.0
+            theta = start + s * 2.6 * math.pi
+            radius = 10 + 84 * s
+            pts.append((radius * math.cos(theta), radius * 0.72 * math.sin(theta)))
+        arms += _band(pts, 14 - 8 * 0.5)
+    return (arms + _ellipse(0, 0, 22, 17)
+            + "".join(_circle(x, y, 3, WHITE) for x, y in
+                      [(-40, -20), (30, 30), (56, -10), (-60, 26), (10, -46)]))
+
+
+def _constellation():
+    stars = [(-80, -50), (-40, -72), (0, -30), (34, -62), (72, -20), (40, 40),
+             (-12, 62)]
+    lines = "".join(_band([a, b], 4) for a, b in zip(stars, stars[1:]))
+
+    def twinkle(x, y, r):
+        pts = []
+        for i in range(8):
+            a = -math.pi / 2 + i * math.pi / 4
+            rad = r if i % 2 == 0 else r * 0.34
+            pts.append((x + rad * math.cos(a), y + rad * math.sin(a)))
+        return _poly(pts)
+
+    return lines + "".join(twinkle(x, y, 16 if i % 3 == 0 else 11)
+                           for i, (x, y) in enumerate(stars))
+
+
+SHAPES["spiral galaxy"] = _galaxy()
+SHAPES["constellation"] = _constellation()
+
+META.update({
+    "spiral galaxy": (3, {"cosmic"}, "spiral galaxy", "spiral galaxies",
+                      "spiral galaxies", False,
+                      ["spiral galaxy", "galaxy", "milky way", "nebula"]),
+    "constellation": (2, {"cosmic"}, "constellation", None, None, False,
+                      ["constellation", "big dipper", "plough"]),
+})
+
+# The vocabulary each charge arrived in: 1 unless listed.
+SINCE = {"spiral galaxy": 2, "constellation": 2}

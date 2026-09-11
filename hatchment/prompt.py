@@ -16,7 +16,7 @@ import difflib
 import re
 from dataclasses import dataclass, field as _default
 
-from . import charges, lines, patterns
+from . import charges, lines, patterns, variants
 from .blazon import (BANDED, FURS, METALS, SEME_CHARGES, VARIATIONS, Blazon,
                      is_metal, pick_colour, pick_contrasting)
 from .gloss import EN
@@ -159,6 +159,22 @@ PATTERN_WORDS["diagonal lattice"] += ["lattice"]
 PATTERN_WORDS["square grid"] += ["grid"]
 PATTERN_WORDS["sunburst"] += ["rays"]
 PATTERN_WORDS["moire rings"] += ["moire", "moiré"]
+PATTERN_WORDS["hilbert curve"] += ["hilbert"]
+PATTERN_WORDS["levy curve"] += ["levy", "lévy", "lévy curve", "levy c curve"]
+PATTERN_WORDS["gosper curve"] += ["gosper", "flowsnake"]
+PATTERN_WORDS["pythagoras tree"] += ["pythagoras", "pythagorean tree"]
+PATTERN_WORDS["branching tree"] += ["fractal tree"]
+PATTERN_WORDS["apollonian gasket"] += ["apollonian", "circle packing"]
+PATTERN_WORDS["t-square"] += ["t square"]
+PATTERN_WORDS["hexaflake"] += ["hex flake"]
+
+# Variants: a name that picks a form on its own ("a scimitar", "a lion's
+# head"), and pose words that qualify whichever charge they sit beside.
+VARIANT_WORDS = {(charge, form[0]): list(form[5])
+                 for charge, forms in variants.VARIANTS.items() for form in forms
+                 if form[5]}
+POSE_WORDS = sorted({w for forms in variants.VARIANTS.values()
+                     for form in forms for w in form[6]})
 
 THEME_WORDS = {
     "cosmic": ["cosmic", "space", "celestial", "astral"],
@@ -202,9 +218,8 @@ FILLER = {
     "old", "new", "elegant", "strong", "brave", "mighty", "great", "lot",
     "lots", "many", "several", "one's", "it's", "crossed",
     # Poses. Each charge has one drawing, so how it stands changes nothing.
-    "rising", "flying", "leaping", "running", "swimming", "sleeping",
-    "roaring", "rearing", "walking", "sitting", "perched", "soaring",
-    "howling", "crouching", "coiled", "burning", "glowing", "facing",
+    # Poses a charge has a drawing for are read as poses; these ones none do.
+    "roaring", "howling", "crouching", "glowing", "facing",
 }
 
 # Short names for the charges, for the hint shown when a word is not one.
@@ -216,7 +231,7 @@ _NOUNS = ("charge", "ordinary", "border", "semeobj", "field", "division",
           "variation", "pattern", "theme")
 # Nouns that take two tinctures: a field and its second tincture.
 _PAIRED = ("field", "division", "variation", "pattern", "theme")
-_PLURAL_KINDS = ("charge", "ordinary", "border", "field")
+_PLURAL_KINDS = ("charge", "variant", "ordinary", "border", "field")
 
 
 def _tokens(text):
@@ -241,11 +256,13 @@ def _lexicon():
     add("border", {"bordure": BORDER_WORDS})
     add("line", LINE_WORDS)
     add("seme", {"seme": SEME_WORDS})
+    add("variant", VARIANT_WORDS)
     add("charge", CHARGE_WORDS)
     add("tincture", TINCTURE_WORDS)
     add("theme", THEME_WORDS)
     add("field", {"field": FIELD_WORDS})
     add("number", NUMBER_WORDS)
+    add("pose", {w: [w] for w in POSE_WORDS})
     add("on", {"on": ["on", "upon", "over", "against", "atop"]})
     add("in", {"in": ["in"]})
     add("and", {"and": ["and"]})
@@ -293,6 +310,7 @@ class _Item:
     plural: bool = False
     word: str = ""
     tinctures: list = _default(default_factory=list)
+    variant: str = None
 
 
 def _or_is_tincture(tokens, i, items):
@@ -334,7 +352,12 @@ def _scan(text):
             hit = _lookup(words)
             if hit:
                 kind, value, plural = hit
-                items.append(_Item(kind, value, plural, " ".join(words)))
+                if kind == "variant":
+                    # A form named outright is its charge, already posed.
+                    items.append(_Item("charge", value[0], plural, " ".join(words),
+                                       variant=value[1]))
+                else:
+                    items.append(_Item(kind, value, plural, " ".join(words)))
                 i += size
                 break
         else:
@@ -416,6 +439,7 @@ class Wishes:
     ordinary_t: str = None
     charge: str = None
     charge_t: str = None
+    variant: str = None
     count: int = None
     plural: bool = False
     seme: str = None
@@ -472,6 +496,15 @@ def parse(text):
     if charges:
         chosen = charges[0]
         w.charge, w.plural = chosen.value, chosen.plural
+        w.variant = chosen.variant
+        if w.variant is None:
+            # A pose word anywhere in the description: "a walking lion", "a
+            # lion's head" said as "a lion head". Silent when the charge has
+            # no such pose -- there is nothing wrong to report.
+            for pose in all_of("pose"):
+                w.variant = variants.by_pose(w.charge, pose.value)
+                if w.variant:
+                    break
         w.charge_t = chosen.tinctures[0] if chosen.tinctures else None
         index = items.index(chosen) - 1
         while index >= 0 and items[index].kind in ("tincture", "and"):
@@ -645,7 +678,8 @@ def compose(w, rng, theme=None, max_complexity=3, vocab=1):
     if w.pattern_mode():
         pool = patterns.FRACTAL if theme == "fractal" else patterns.GEOMETRIC
         b.theme = theme
-        b.pattern = w.pattern or rng.choice(sorted(pool))
+        b.pattern = w.pattern or rng.choice(sorted(
+            name for name in pool if patterns.SINCE.get(name, 0) <= vocab))
         b.pattern_seed = rng.getrandbits(32)
         b.field = w.field or _ground([w.field2], rng)
         b.field2 = w.field2 or pick_contrasting(b.field, rng)
@@ -697,6 +731,8 @@ def compose(w, rng, theme=None, max_complexity=3, vocab=1):
             b.charge_count = rng.choice([2, 3, 3, 4, 5])
         else:
             b.charge_count = 1
+        b.charge_variant = w.variant or (variants.pick(b.charge, rng)
+                                         if vocab >= 2 else None)
 
     if w.bordure:
         b.bordure = w.bordure_t or pick_contrasting(b.field, rng)

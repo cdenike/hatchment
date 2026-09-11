@@ -13,7 +13,7 @@ thing a braille cell can say.
 import random
 import re
 
-from . import charges, lines, patterns
+from . import charges, lines, patterns, variants
 
 # --- Tinctures -------------------------------------------------------------
 
@@ -182,7 +182,8 @@ CHARGES = {
 # hatchment.charges. Marked with the vocabulary they arrived in, so a seed from
 # before them still rolls from the table it was rolled from.
 for _name, _meta in charges.META.items():
-    CHARGES[_name] = {"complexity": _meta[0], "themes": set(_meta[1]), "since": 1}
+    CHARGES[_name] = {"complexity": _meta[0], "themes": set(_meta[1]),
+                      "since": charges.SINCE.get(_name, 1)}
 
 # Fractal and geometric are not heraldry and do not pretend to be: they treat
 # the shield as a frame for a pattern rather than as arms.
@@ -206,26 +207,34 @@ BLAZON_NAME = {"attires": "pair of attires", "scales": "pair of scales"}
 ALL_MODES = THEMES + ("free",)
 LEGACY_MODES = LEGACY_THEMES + ("free",)
 
-# Every seed Randomise made before 0.1.8 is sixteen hex digits. Rolled against
-# the vocabulary of the time, they come out as the arms they always were;
-# anything else -- a new eighteen-digit seed, a word -- gets everything.
+# Seeds carry the vocabulary they were made in, by their length. Randomise
+# made sixteen hex digits before 0.1.8 and eighteen in 0.1.8; each rolls
+# against the vocabulary of its time and comes out as the arms it always was.
+# Anything else -- a twenty-digit seed from now on, or a word -- gets
+# everything, poses and forms included.
 _LEGACY_SEED = re.compile(r"[0-9a-f]{16}")
+_SEED_0_1_8 = re.compile(r"[0-9a-f]{18}")
 
 
 def vocabulary_for(seed, theme=None):
-    """1 for the full vocabulary, 0 for the one a pre-0.1.8 seed was rolled in.
+    """0, 1 or 2: the vocabulary a seed was rolled in.
 
-    A mythic theme always takes the full one: no earlier seed ever had it.
+    0 is the charges before 0.1.8; 1 adds the 0.1.8 charges; 2 adds the poses
+    and forms of hatchment.variants. A mythic theme takes at least 1, since no
+    earlier seed ever had it.
     """
-    if theme != "mythic" and _LEGACY_SEED.fullmatch(seed or ""):
-        return 0
-    return 1
+    seed = seed or ""
+    if _LEGACY_SEED.fullmatch(seed):
+        return 1 if theme == "mythic" else 0
+    if _SEED_0_1_8.fullmatch(seed):
+        return 1
+    return 2
 
 
 def new_seed():
-    """A fresh seed, one digit pair longer than the legacy shape."""
+    """A fresh seed: twenty hex digits, the shape of the current vocabulary."""
     import os
-    return os.urandom(9).hex()
+    return os.urandom(10).hex()
 
 
 class Blazon:
@@ -247,6 +256,7 @@ class Blazon:
         self.charge = None
         self.charge_tincture = None
         self.charge_count = 0
+        self.charge_variant = None
         self.charge_anchor = "centre"
         self.line_style = "plain"
         self.pattern = None
@@ -296,7 +306,10 @@ class Blazon:
         if self.theme in ("fractal", "geometric"):
             pool = (patterns.FRACTAL if self.theme == "fractal"
                     else patterns.GEOMETRIC)
-            self.pattern = rng.choice(sorted(pool))
+            # Families added later join the pool only for seeds of their time,
+            # so an older seed still picks from the pool it was rolled against.
+            self.pattern = rng.choice(sorted(
+                name for name in pool if patterns.SINCE.get(name, 0) <= self.vocab))
             # The generators randomise their own depth, count and rotation, so
             # the choice has to be pinned here rather than re-rolled at draw
             # time: the same arms are rendered at three different widths, and
@@ -446,6 +459,8 @@ class Blazon:
             self.charge_count = 1
         else:
             self.charge_count = rng.choice([1, 1, 2, 3, 3, 4, 5])
+        if self.vocab >= 2:
+            self.charge_variant = variants.pick(self.charge, rng)
 
     # Ordinaries occupying the fess point, so a charge placed there sits on
     # them rather than on the field. "fess double" and "pale double" are two
@@ -515,8 +530,12 @@ class Blazon:
                                         self.ordinary_tincture))
 
         if self.charge:
+            # A pose or form names itself -- "a lion passant", "a cross
+            # moline"; the charge's first form is named by the charge alone.
+            form = variants.get(self.charge, self.charge_variant)
             if self.charge_count == 1:
-                word = BLAZON_NAME.get(self.charge, self.charge)
+                word = ((form and form[1])
+                        or BLAZON_NAME.get(self.charge, self.charge))
                 article = charges.article(word)
                 parts.append("%s %s %s" % (article, word,
                                            self.charge_tincture))
@@ -526,7 +545,8 @@ class Blazon:
                 words = {2: "two", 3: "three", 4: "four", 5: "five"}
                 parts.append("%s %s %s" % (words.get(self.charge_count,
                                                      str(self.charge_count)),
-                                           self._plural(self.charge),
+                                           (form and form[2])
+                                           or self._plural(self.charge),
                                            self.charge_tincture))
         if self.bordure:
             # A bordure is blazoned last, after everything it surrounds.

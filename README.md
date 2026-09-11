@@ -114,9 +114,40 @@ heraldry already had both registers.
   crescent, annulet, eagle, ringed planet, compass rose, yin and yang, and the
   zodiac's ram, bull, crab and scorpion
 
-Seeds rolled before 0.1.8 — sixteen hex digits, the shape Randomise used to
-make — still roll from the charges of the time, so arms you kept the seed of
-come back the same. New seeds are eighteen digits and draw on everything.
+### Poses and forms
+
+Most charges can be drawn more than one way, and heraldry names the ways: a
+lion **rampant**, **passant** (walking), **sejant** (sitting), **couchant**
+(lying) or just a **lion's head**; a horse rearing, walking, galloping or its
+head; a stag standing, leaping, **lodged** or its head **caboshed**; an eagle
+displayed, **close**, rising or **double-headed**. Wolves, bears, boars, bulls,
+rams, hounds, hares, unicorns, pegasi and dragons (and the **wyvern**) have
+theirs; so do fish, serpents (**nowed**, or the ouroboros) and ravens.
+
+Things have forms: pine, palm and uprooted trees; the scimitar and the sword
+inverted; mural, eastern and royal crowns; the castle; the covered cup, the
+fouled anchor, the Catherine wheel, the **pheon**, the Norman helm, the
+sailing ship, the closed book, the pennon; the flaming heart, the skull and
+crossbones, the eye of providence, the double axe, Thor's hammer; the cross
+**moline**, **fleury**, **bottony**, **potent**, Celtic, Latin and Maltese;
+six- and eight-pointed and pierced mullets; the triquetra and the triskelion
+of three legs. The cosmic register has the sun in glory, with a face or
+eclipsed; the decrescent and the full moon; the streaming comet; the armillary
+sphere; the planet with moons; the compass star — and two more charges, the
+spiral galaxy and the constellation.
+
+The first form of each is the one it always had, and needs no word: "a lion
+or" is rampant. Others name themselves — "a lion passant or" — and a
+description can ask for one: *a walking lion*, *a lion's head*, *a palm tree*,
+*a Celtic cross*, *three flying ravens*.
+
+### Seeds from earlier versions
+
+A seed carries the vocabulary it was made in, by its length. Seeds from before
+0.1.8 are sixteen hex digits, and 0.1.8's are eighteen; each still rolls from
+the charges and patterns of its time, so arms you kept the seed of come back
+the same. New seeds are twenty digits and draw on everything, poses and forms
+included.
 - **Natural** — garb (a wheatsheaf), tree, rose, trefoil, attires (a pair of
   antlers borne without the stag), stag, bee, fish, horse, lion, eagle, wolf,
   bear, boar, fox, bull, ram, hare, hound, elephant, owl, raven, swan, martlet
@@ -128,7 +159,9 @@ come back the same. New seeds are eighteen digits and draw on everything.
   thunderbolt, triskele, Bowen knot, ankh
 - **Fractal** — Sierpinski gasket, Sierpinski carpet, Vicsek fractal, Koch
   snowflake, mandala, nested polygons, H-tree, Cantor bars, flower of life,
-  recursive circles
+  recursive circles, dragon curve, Hilbert curve, Lévy curve, Gosper curve,
+  Pythagoras tree, branching tree, Apollonian gasket, T-square, pentaflake,
+  hexaflake
 - **Geometric** — concentric rings, compass spokes, triangular tessellation,
   nested squares, hexagonal grid, star polygon, diagonal lattice, square grid,
   sunburst, moiré rings

@@ -313,16 +313,23 @@ def _poly(points):
     return " ".join(f"{x},{y}" for x, y in points)
 
 
-def _charge_path(name, cx, cy, r):
-    """One charge, centred on (cx, cy) with radius r. Silhouettes only."""
-    from . import charges
-    if name in charges.SHAPES:
+def _charge_path(name, cx, cy, r, variant=None):
+    """One charge, centred on (cx, cy) with radius r. Silhouettes only.
+
+    `variant` is a pose or form from hatchment.variants; None, or the charge's
+    first form, draws the charge as it always was.
+    """
+    from . import charges, variants
+    shape = variants.shape(name, variant) if variant else None
+    if shape is None:
+        shape = charges.SHAPES.get(name)
+    if shape is not None:
         # Drawn in a 200-unit box and scaled into place. The outline width is
         # scaled back up by the same factor, so it matches the older charges'
         # instead of shrinking to a hairline with the shape.
         k = r / 100.0
         return (f'<g transform="translate({cx:.2f} {cy:.2f}) scale({k:.4f})" '
-                f'stroke-width="{1.15 / k:.2f}">{charges.SHAPES[name]}</g>')
+                f'stroke-width="{1.15 / k:.2f}">{shape}</g>')
     if name == "roundel":
         return f'<circle cx="{cx}" cy="{cy}" r="{r}"/>'
 
@@ -808,7 +815,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
             else:
                 cx, cy, r = 50, 54 + drop * 0.8, 27
             out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.2">'
-                       f'{_charge_path(blazon.charge, cx, cy, r)}</g>')
+                       f'{_charge_path(blazon.charge, cx, cy, r, getattr(blazon, "charge_variant", None))}</g>')
         else:
             # One arrangement per count, rather than truncating a list of three:
             # two charges side by side and four in a square are the standard
@@ -827,7 +834,7 @@ def render(blazon, spacing=6.0, stroke=1.5, solid=False, size=512, ground="#fff"
             spots, rad = layouts.get(n, layouts[3])
             for cx, cy in spots:
                 out.append(f'<g fill="{fill}" stroke="#000" stroke-width="1.1">'
-                           f'{_charge_path(blazon.charge, cx, cy, rad)}</g>')
+                           f'{_charge_path(blazon.charge, cx, cy, rad, getattr(blazon, "charge_variant", None))}</g>')
 
     if getattr(blazon, "bordure", None):
         out.append(f'<g fill="none" stroke="{_fill(blazon.bordure, solid, colour)}" '

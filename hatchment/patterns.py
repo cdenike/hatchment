@@ -440,6 +440,252 @@ def moire(rng):
     return out
 
 
+
+# --- fractal, added with the variants ---------------------------------------
+# Curves are one stroked path in currentColor, so they take the pattern's
+# tincture in colour and stay a single unbroken line; the rest are filled.
+
+
+def _rot(points, degrees):
+    a = math.radians(degrees)
+    c, s = math.cos(a), math.sin(a)
+    return [(x * c - y * s, x * s + y * c) for x, y in points]
+
+
+def _fit(points, width=84.0, height=92.0):
+    """Scale and centre a figure drawn at any size into the shield."""
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    w, h = (max(xs) - min(xs)) or 1.0, (max(ys) - min(ys)) or 1.0
+    k = min(width / w, height / h)
+    ox = CX - (min(xs) + max(xs)) / 2 * k
+    oy = CY - (min(ys) + max(ys)) / 2 * k
+    return [(x * k + ox, y * k + oy) for x, y in points]
+
+
+def _curve(points, width):
+    return ('<path d="M %s" fill="none" stroke="currentColor" '
+            'stroke-width="%.2f" stroke-linejoin="round" stroke-linecap="round"/>'
+            % (" L ".join("%.2f %.2f" % p for p in points), width))
+
+
+def _turtle(commands, angle, draw):
+    x = y = heading = 0.0
+    pts = [(0.0, 0.0)]
+    for c in commands:
+        if c in draw:
+            x += math.cos(math.radians(heading))
+            y += math.sin(math.radians(heading))
+            pts.append((x, y))
+        elif c == "+":
+            heading += angle
+        elif c == "-":
+            heading -= angle
+    return pts
+
+
+def dragon_curve(rng):
+    folds = _pick(rng, "of %s folds", lambda: rng.randint(9, 11))
+    turns = [1]
+    for _ in range(folds - 1):
+        turns = turns + [1] + [-t for t in reversed(turns)]
+    x, y, dx, dy = 0, 0, 1, 0
+    pts = [(0, 0)]
+    for t in [0] + turns:
+        if t:
+            dx, dy = -dy * t, dx * t
+        x, y = x + dx, y + dy
+        pts.append((x, y))
+    pts = _fit(_rot(pts, rng.choice([0, 90, 180, 270])))
+    return [_curve(pts, {9: 2.6, 10: 2.0, 11: 1.6}[folds])]
+
+
+def hilbert_curve(rng):
+    order = _pick(rng, "of order %s", lambda: rng.randint(3, 5))
+    n = 2 ** order
+
+    def d2xy(d):
+        x = y = 0
+        s, t = 1, d
+        while s < n:
+            rx = 1 & (t // 2)
+            ry = 1 & (t ^ rx)
+            if ry == 0:
+                if rx == 1:
+                    x, y = s - 1 - x, s - 1 - y
+                x, y = y, x
+            x, y = x + s * rx, y + s * ry
+            t //= 4
+            s *= 2
+        return x, y
+
+    pts = _fit([d2xy(i) for i in range(n * n)], 80, 80)
+    return [_curve(pts, {3: 4.0, 4: 2.6, 5: 1.5}[order])]
+
+
+def levy_curve(rng):
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(9, 11))
+    pts = [(0.0, 0.0), (1.0, 0.0)]
+    for _ in range(depth):
+        new = [pts[0]]
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            new += [((x0 + x1) / 2 - (y1 - y0) / 2, (y0 + y1) / 2 + (x1 - x0) / 2),
+                    (x1, y1)]
+        pts = new
+    return [_curve(_fit(pts), {9: 2.4, 10: 1.8, 11: 1.4}[depth])]
+
+
+def gosper_curve(rng):
+    order = _pick(rng, "of order %s", lambda: rng.randint(3, 4))
+    seq = "A"
+    rules = {"A": "A-B--B+A++AA+B-", "B": "+A-BB--B-A++A+B"}
+    for _ in range(order):
+        seq = "".join(rules.get(c, c) for c in seq)
+    return [_curve(_fit(_turtle(seq, 60, "AB")), {3: 2.2, 4: 1.3}[order])]
+
+
+def pythagoras_tree(rng):
+    depth = _pick(rng, "of %s generations", lambda: rng.randint(7, 9))
+    angle = math.radians(rng.choice([35, 40, 45, 50, 55]))
+    squares = []
+
+    def grow(p0, p1, d):
+        dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+        p3, p2 = (p0[0] + dy, p0[1] - dx), (p1[0] + dy, p1[1] - dx)
+        squares.append([p0, p1, p2, p3])
+        if d == 0:
+            return
+        length = math.hypot(dx, dy)
+        ux, uy = (p2[0] - p3[0]) / length, (p2[1] - p3[1]) / length
+        c, s = math.cos(angle), math.sin(angle)
+        rx, ry = ux * c + uy * s, -ux * s + uy * c
+        apex = (p3[0] + rx * length * c, p3[1] + ry * length * c)
+        grow(p3, apex, d - 1)
+        grow(apex, p2, d - 1)
+
+    grow((0.0, 0.0), (1.0, 0.0), depth)
+    flat = _fit([p for sq in squares for p in sq], 90, 96)
+    return [_poly(flat[i:i + 4]) for i in range(0, len(flat), 4)]
+
+
+def branching_tree(rng):
+    depth = _pick(rng, "of %s generations", lambda: rng.randint(8, 10))
+    spread = math.radians(rng.choice([18, 24, 30, 36]))
+    ratio = rng.choice([0.68, 0.72, 0.76])
+    segments = []
+
+    def grow(x, y, a, length, d):
+        x2, y2 = x + length * math.sin(a), y - length * math.cos(a)
+        segments.append((x, y, x2, y2, d))
+        if d:
+            grow(x2, y2, a - spread, length * ratio, d - 1)
+            grow(x2, y2, a + spread, length * ratio, d - 1)
+
+    grow(0.0, 0.0, 0.0, 30.0, depth)
+    ends = _fit([(s[0], s[1]) for s in segments] + [(s[2], s[3]) for s in segments],
+                88, 96)
+    half = len(segments)
+    return ['<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="currentColor" '
+            'stroke-width="%.2f" stroke-linecap="round"/>'
+            % (ends[i][0], ends[i][1], ends[half + i][0], ends[half + i][1],
+               0.9 + 0.55 * segments[i][4])
+            for i in range(half)]
+
+
+def apollonian_gasket(rng):
+    import cmath
+    depth = _pick(rng, "of %s generations", lambda: rng.randint(3, 5))
+    if rng.random() < 0.5:
+        r = 2 * math.sqrt(3) - 3
+        inner = [(1 / r, (1 - r) * cmath.exp(1j * (math.pi / 2 + i * 2 * math.pi / 3)))
+                 for i in range(3)]
+    else:
+        inner = [(2.0, 0.5 + 0j), (2.0, -0.5 + 0j), (3.0, 2j / 3)]
+    outer = (-1.0, 0j)
+    circles = [outer] + inner
+
+    def fourth(a, b, c, old):
+        k = 2 * (a[0] + b[0] + c[0]) - old[0]
+        z = (2 * (a[0] * a[1] + b[0] * b[1] + c[0] * c[1]) - old[0] * old[1]) / k
+        return (k, z)
+
+    def fill(a, b, c, old, d):
+        if d == 0:
+            return
+        e = fourth(a, b, c, old)
+        if 1 / e[0] < 0.012:
+            return
+        circles.append(e)
+        fill(a, b, e, c, d - 1)
+        fill(a, c, e, b, d - 1)
+        fill(b, c, e, a, d - 1)
+
+    b, c, d0 = inner
+    fill(b, c, d0, outer, depth)
+    fill(outer, b, c, d0, depth)
+    fill(outer, b, d0, c, depth)
+    fill(outer, c, d0, b, depth)
+    scale = 44.0
+    return ['<circle cx="%.2f" cy="%.2f" r="%.2f" fill="none" stroke="currentColor" '
+            'stroke-width="%.1f"/>'
+            % (CX + z.real * scale, CY + z.imag * scale, abs(1 / k) * scale,
+               2.4 if abs(1 / k) > 0.2 else 1.4)
+            for k, z in circles]
+
+
+def t_square(rng):
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(4, 5))
+    out = []
+
+    def square(cx, cy, half, d):
+        out.append(_poly([(cx - half, cy - half), (cx + half, cy - half),
+                          (cx + half, cy + half), (cx - half, cy + half)]))
+        if d > 1:
+            for sx in (-1, 1):
+                for sy in (-1, 1):
+                    square(cx + sx * half, cy + sy * half, half / 2, d - 1)
+
+    square(CX, CY, 22.0, depth)
+    return out
+
+
+def pentaflake(rng):
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(2, 3))
+    phi = (1 + 5 ** 0.5) / 2
+    out = []
+
+    def flake(cx, cy, r, d, rot):
+        if d == 0:
+            out.append(_poly(_regular(5, r, rot=rot, cx=cx, cy=cy, squash=1.0)))
+            return
+        r2 = r / (1 + phi)
+        flake(cx, cy, r2, d - 1, rot + 36)
+        for i in range(5):
+            a = math.radians(rot + i * 72)
+            flake(cx + (r - r2) * math.cos(a), cy + (r - r2) * math.sin(a),
+                  r2, d - 1, rot)
+
+    flake(CX, CY, 48.0, depth, -90)
+    return out
+
+
+def hexaflake(rng):
+    depth = _pick(rng, "of %s iterations", lambda: rng.randint(2, 3))
+    out = []
+
+    def flake(cx, cy, r, d):
+        if d == 0:
+            out.append(_poly(_regular(6, r, rot=30, cx=cx, cy=cy, squash=1.0)))
+            return
+        r2 = r / 3
+        flake(cx, cy, r2, d - 1)
+        for i in range(6):
+            a = math.radians(30 + i * 60)
+            flake(cx + 2 * r2 * math.cos(a), cy + 2 * r2 * math.sin(a), r2, d - 1)
+
+    flake(CX, CY, 48.0, depth)
+    return out
+
+
 FRACTAL = {
     "sierpinski gasket": sierpinski,
     "sierpinski carpet": sierpinski_carpet,
@@ -451,6 +697,16 @@ FRACTAL = {
     "cantor bars": cantor_bars,
     "flower of life": flower_of_life,
     "recursive circles": recursive_circles,
+    "dragon curve": dragon_curve,
+    "hilbert curve": hilbert_curve,
+    "levy curve": levy_curve,
+    "gosper curve": gosper_curve,
+    "pythagoras tree": pythagoras_tree,
+    "branching tree": branching_tree,
+    "apollonian gasket": apollonian_gasket,
+    "t-square": t_square,
+    "pentaflake": pentaflake,
+    "hexaflake": hexaflake,
 }
 
 GEOMETRIC = {
@@ -468,6 +724,13 @@ GEOMETRIC = {
 
 ALL = dict(FRACTAL)
 ALL.update(GEOMETRIC)
+
+# The vocabulary each family arrived in: 0 unless listed. A seed rolls only
+# from the families of its own time (see blazon.vocabulary_for).
+SINCE = {name: 2 for name in ("dragon curve", "hilbert curve", "levy curve",
+                              "gosper curve", "pythagoras tree", "branching tree",
+                              "apollonian gasket", "t-square", "pentaflake",
+                              "hexaflake")}
 
 
 def shapes(name, rng):
