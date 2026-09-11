@@ -11,12 +11,13 @@ keepLoaded, so the menu is still there to be summoned even when its bar widget
 is not in the layout -- which is why this only has to replace the button.
 
 Nothing here is destructive: the swap is one id in the bar layout, restore()
-puts the original back, and the plugin directory can be deleted by hand.
+puts the original back, and uninstall() removes the plugin directory as well.
 """
 
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import tempfile
 
@@ -203,3 +204,14 @@ def restore():
     _swap(PLUGIN_ID, OMARCHY_ID)
     _rescan()
     return "Omarchy menu icon restored"
+
+
+def uninstall():
+    """Omarchy's button back, and the widget plugin removed with it."""
+    result = restore()
+    if PLUGIN_DIR.exists():
+        shutil.rmtree(PLUGIN_DIR)
+        _rescan()                         # so the shell forgets the plugin too
+        if result == "menu icon was not set":
+            result = "menu icon plugin removed"
+    return result

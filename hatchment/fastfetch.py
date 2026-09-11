@@ -13,8 +13,10 @@ failure worth avoiding here.
 """
 
 import os
+import pathlib
 import re
 import subprocess
+import time
 
 from .render import fit_cols
 
@@ -146,3 +148,100 @@ def fit(logo_path):
 
 def _clamp(cols):
     return max(MIN_COLS, min(MAX_COLS, cols))
+
+
+# Omarchy's own config, from the omarchy-settings package. fastfetch reads it
+# whenever there is no config in ~/.config/fastfetch -- and a stock Omarchy has
+# none there -- so it is both what "Omarchy's fastfetch" means and the template
+# for pointing fastfetch at the arms without disturbing anything else about it.
+USER_CONFIG = pathlib.Path.home() / ".config/fastfetch/config.jsonc"
+SYSTEM_CONFIG = pathlib.Path("/etc/fastfetch/config.jsonc")
+STOCK_SOURCE = '"source": "~/.config/omarchy/branding/about.txt"'
+
+
+def _source_for(logo_path):
+    """The logo path as config.jsonc would spell it, with ~ for home."""
+    try:
+        return "~/" + str(logo_path.relative_to(pathlib.Path.home()))
+    except ValueError:
+        return str(logo_path)
+
+
+def wired(logo_path):
+    """True when the user's fastfetch config shows this logo."""
+    try:
+        text = USER_CONFIG.read_text()
+    except OSError:
+        return False
+    return _source_for(logo_path) in text or str(logo_path) in text
+
+
+def wire(logo_path):
+    """Point fastfetch at the arms, where that needs no one's config edited.
+
+    With no config of the user's own -- a stock Omarchy, or one hatchment has
+    reset -- Omarchy's is copied into place with the single line naming the logo
+    changed, so the layout stays exactly as Omarchy ships it. A config the user
+    wrote is theirs: it is not edited, and they are told the one line to change.
+
+    Returns a note worth showing, or None when there was nothing to say.
+    """
+    if wired(logo_path):
+        return None
+    source = _source_for(logo_path)
+    if USER_CONFIG.exists():
+        return ("your fastfetch config shows another logo; set its logo "
+                "source to %s to see the arms" % source)
+    try:
+        stock = SYSTEM_CONFIG.read_text()
+    except OSError:
+        return "no fastfetch config to point at the arms; see the README"
+    if stock.count(STOCK_SOURCE) != 1:
+        return ("Omarchy's fastfetch config is not the shape expected; set "
+                "its logo source to %s by hand" % source)
+    USER_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    USER_CONFIG.write_text(stock.replace(STOCK_SOURCE, '"source": "%s"' % source))
+    return "fastfetch now shows the arms"
+
+
+def unwire(logo_path):
+    """Hand fastfetch back to Omarchy's own config. Returns (changed, message).
+
+    Only a config that shows the arms is moved, and only aside: it exists
+    because of hatchment, and without it fastfetch falls back to Omarchy's in
+    /etc/fastfetch. A config showing anything else is the user's business.
+    """
+    if not USER_CONFIG.exists():
+        return False, "fastfetch was already Omarchy's"
+    if not wired(logo_path):
+        return False, "your fastfetch config does not show the arms; left alone"
+    backup = USER_CONFIG.with_name("%s.bak.%d" % (USER_CONFIG.name, time.time()))
+    USER_CONFIG.rename(backup)
+    return True, "fastfetch restored to Omarchy's config (yours kept as %s)" % backup.name
+
+
+def install(logo_path, draw):
+    """Wire fastfetch, then write the logo at the width there is room for.
+
+    `draw` renders the arms at a given width. Returns (size, note).
+
+    Measured a second time when the first measurement had no logo to go on.
+    Padding comes from a full render with a logo in it, so with none installed
+    yet -- a fresh install, or the first set after a reset -- the first fit uses
+    a guessed padding, and Omarchy's own config pads more than the guess. Once
+    a logo exists the second fit measures the real padding, and a logo at the
+    wrong width is redrawn at the right one.
+    """
+    note = wire(logo_path)
+    size = fit(logo_path)
+    _write(logo_path, draw(size.cols))
+    again = fit(logo_path)
+    if again.cols != size.cols:
+        _write(logo_path, draw(again.cols))
+        size = again
+    return size, note
+
+
+def _write(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text + "\n")

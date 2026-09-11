@@ -263,7 +263,9 @@ hatchment
 A GTK4/libadwaita window: **Randomise** to roll, then **Set fastfetch logo** or
 **Set screensaver** to install the arms in front of you. **Export SVG…** saves
 the hatched vector. Type a seed to reproduce arms you liked, and setting the
-screensaver only takes over the screen if you tick the box.
+screensaver only takes over the screen if you tick the box. **Restore Omarchy
+defaults…**, at the bottom, undoes all three installs after asking — see
+[Back to stock](#back-to-stock).
 
 It ships a desktop entry, so it also shows up in the app launcher.
 
@@ -325,6 +327,7 @@ hatchment --screensaver            # install as screensaver branding
 hatchment --screensaver --no-reload  # ...without taking the screen
 hatchment --menu-icon              # wear the arms as the Omarchy menu button
 hatchment --menu-icon-off          # put Omarchy's own button back
+hatchment --stock                  # put back all three, as Omarchy ships them
 ```
 
 Every roll prints its seed, so arms you like can be recovered exactly.
@@ -344,7 +347,12 @@ keeps the width of the logo already installed, on the grounds that whatever
 wrote that file last did have one; failing that it uses 24 columns, which leaves
 an 80-column terminal enough for the default info block.
 
-Point fastfetch at it once:
+If you have no fastfetch config of your own — and Omarchy ships none in
+`~/.config/fastfetch`, using `/etc/fastfetch/config.jsonc` instead — setting the
+logo points fastfetch at it for you: Omarchy's config is copied into place with
+the one line naming the logo changed, and the rest of the layout kept exactly as
+Omarchy ships it. A config of your own is never edited; point it at the arms
+yourself:
 
 ```jsonc
 "logo": {
@@ -400,6 +408,30 @@ shell's hot reload nor churns the file's formatting.
 The icon is drawn solid rather than hatched, on nothing rather than on white:
 hatching is mush at seventeen pixels, and a white ground would put a pale
 square on the bar instead of a shield.
+
+### Back to stock
+
+`--stock`, or **Restore Omarchy defaults…** in the window, puts back what the
+three installs changed, reading the defaults from Omarchy itself rather than
+from copies kept here:
+
+- **Screensaver** — `$OMARCHY_PATH/logo.txt` is copied back into
+  `~/.config/omarchy/branding/screensaver.txt`, which is exactly what
+  `omarchy branding screensaver reset` does.
+- **fastfetch** — a `~/.config/fastfetch/config.jsonc` that shows the arms is
+  moved aside, and fastfetch falls back to Omarchy's own config. One that shows
+  anything else is yours, and is left alone.
+- **Menu button** — `omarchy.menu` goes back into the bar layout and the
+  `hatchment.menu` plugin is removed.
+
+The screensaver art and fastfetch config are moved aside rather than deleted,
+as `<name>.bak.<seconds>` — the same naming `omarchy-refresh-config` uses — so a
+reset can be undone by hand. The menu plugin is deleted outright; it is only
+hatchment's generated files, and setting the icon again recreates it. Setting
+the fastfetch logo afterwards wires fastfetch up again from Omarchy's config.
+
+`--stock` shows the restored screensaver straight away unless `--no-reload` is
+given; in the window, the same box that governs setting the screensaver decides.
 
 ### Cell shape
 

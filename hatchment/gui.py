@@ -18,7 +18,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import fastfetch, menuicon, screensaver, theme
+from . import fastfetch, menuicon, screensaver, stock, theme
 from .gloss import plain
 from .cli import (FASTFETCH_LOGO, SCREENSAVER,
                   draw_at, generate, write)
@@ -297,6 +297,19 @@ class HatchmentWindow(Adw.ApplicationWindow):
             label="Show the screensaver right away after setting it")
         box.append(self.preview_check)
 
+        # Undoing all three installs is rarer than any of them and reaches
+        # further, so it sits apart below everything and asks before it acts.
+        # Flat, so it does not compete with Randomise for the eye.
+        self.stock_btn = Gtk.Button(label="Restore Omarchy defaults…")
+        self.stock_btn.add_css_class("flat")
+        self.stock_btn.add_css_class("destructive-action")
+        self.stock_btn.connect("clicked", self.on_stock)
+        if not stock.available():
+            self.stock_btn.set_sensitive(False)
+            self.stock_btn.set_tooltip_text(
+                "Needs an Omarchy install to take the defaults from")
+        box.append(self.stock_btn)
+
         view.set_content(box)
         self.toasts.set_child(view)
         self.set_content(self.toasts)
@@ -439,9 +452,10 @@ class HatchmentWindow(Adw.ApplicationWindow):
         if busy:
             self._focus_before_busy = self.get_focus()
         for b in (self.roll_btn, self.ff_btn, self.ss_btn, self.menu_btn,
-                  self.svg_btn, self.png_btn):
-            b.set_sensitive(not busy and (b is not self.menu_btn
-                                          or menuicon.available()))
+                  self.svg_btn, self.png_btn, self.stock_btn):
+            b.set_sensitive(not busy
+                            and (b is not self.menu_btn or menuicon.available())
+                            and (b is not self.stock_btn or stock.available()))
         self.roll_btn.set_label("Rolling…" if busy else "Randomise")
         if not busy:
             # Back where it was -- unless that was the art label, or nothing,
@@ -519,9 +533,12 @@ class HatchmentWindow(Adw.ApplicationWindow):
             return
         # Re-rendered at the fastfetch width rather than reusing the preview:
         # the sidebar is narrower, and scaling braille art is not a thing.
-        size = fastfetch.fit(FASTFETCH_LOGO)
-        write(FASTFETCH_LOGO, draw_at(self.blazon, size.cols))
+        blazon = self.blazon
+        size, note = fastfetch.install(FASTFETCH_LOGO,
+                                       lambda cols: draw_at(blazon, cols))
         self.toast("Set as fastfetch logo (%s)" % size)
+        if note:
+            self.toast(note[0].upper() + note[1:])
 
     def on_menu_icon(self, _btn):
         """Put the current arms on the Omarchy menu button.
@@ -560,6 +577,51 @@ class HatchmentWindow(Adw.ApplicationWindow):
                 self.toast("Could not launch the screensaver")
                 return
         self.toast("Set as screensaver branding (%s)" % size)
+
+    def on_stock(self, _btn):
+        """Ask, then put back Omarchy's screensaver, fastfetch and menu button.
+
+        Asks because it undoes three things at once and a click is easy to
+        make; says which three because "defaults" on its own does not.
+        """
+        dialog = Adw.AlertDialog(
+            heading="Restore Omarchy defaults?",
+            body="The screensaver goes back to the Omarchy logo, fastfetch "
+                 "back to Omarchy's own config, and the menu button back to "
+                 "Omarchy's. The screensaver art and fastfetch config you have "
+                 "now are kept beside the originals as .bak files.")
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("restore", "Restore")
+        dialog.set_response_appearance("restore",
+                                       Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+        dialog.set_close_response("cancel")
+        dialog.connect("response", self._on_stock_response)
+        dialog.present(self)
+
+    def _on_stock_response(self, _dialog, response):
+        if response != "restore":
+            return
+        try:
+            results = stock.reset(FASTFETCH_LOGO, SCREENSAVER)
+        except (OSError, subprocess.SubprocessError) as exc:
+            self.toast("Could not restore the defaults: %s" % exc)
+            return
+        changed = [name for name, did, _ in results if did]
+        # Same rule as setting the screensaver: take the screen only if asked.
+        if "screensaver" in changed and self.preview_check.get_active():
+            try:
+                subprocess.run(["omarchy-launch-screensaver", "force"],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL, check=False)
+            except OSError:
+                pass
+        if not changed:
+            self.toast("Already on Omarchy's defaults")
+            return
+        names = (", ".join(changed[:-1]) + " and " + changed[-1]
+                 if len(changed) > 1 else changed[0])
+        self.toast("Restored Omarchy's %s" % names)
 
     def on_export(self, _btn, fmt="svg"):
         """Save the arms as vector or raster.

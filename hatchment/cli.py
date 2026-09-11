@@ -7,7 +7,7 @@ import random
 import subprocess
 import sys
 
-from . import fastfetch, menuicon, screensaver
+from . import fastfetch, menuicon, screensaver, stock
 from .blazon import Blazon
 from .draw import render
 from .gloss import plain
@@ -111,13 +111,17 @@ def main(argv=None):
                    help="draw charges from one register only "
                         "(default: both)")
     p.add_argument("--fastfetch", action="store_true",
-                   help="install as the fastfetch logo")
+                   help="install as the fastfetch logo, pointing fastfetch at "
+                        "it if you have no fastfetch config of your own")
     p.add_argument("--screensaver", action="store_true",
                    help="install as the Omarchy screensaver branding")
     p.add_argument("--menu-icon", action="store_true",
                    help="wear the arms as the Omarchy menu button")
     p.add_argument("--menu-icon-off", action="store_true",
                    help="put Omarchy's own menu button back")
+    p.add_argument("--stock", action="store_true",
+                   help="put back Omarchy's own screensaver, fastfetch logo "
+                        "and menu button (what they replace is kept as .bak)")
     p.add_argument("--svg", metavar="PATH",
                    help="also write the full-colour-hatched SVG here")
     p.add_argument("--no-reload", action="store_true",
@@ -128,10 +132,22 @@ def main(argv=None):
 
     # Restoring needs no arms, so it happens before the roll rather than after
     # generating a shield nobody asked to see.
-    if args.menu_icon_off:
+    if args.stock:
+        results = stock.reset(FASTFETCH_LOGO, SCREENSAVER)
+        for _name, _changed, message in results:
+            print(message, file=sys.stderr)
+        # The same preview rule as installing: show the screensaver that is now
+        # in place, unless asked not to take the screen.
+        if not args.no_reload and any(name == "screensaver" and changed
+                                      for name, changed, _ in results):
+            subprocess.run(["omarchy-launch-screensaver", "force"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           check=False)
+    elif args.menu_icon_off:
         print(menuicon.restore(), file=sys.stderr)
-        if not (args.fastfetch or args.screensaver or args.menu_icon):
-            return 0
+    if ((args.stock or args.menu_icon_off)
+            and not (args.fastfetch or args.screensaver or args.menu_icon)):
+        return 0
 
     seed = args.seed if args.seed is not None else os.urandom(8).hex()
     rng = random.Random(seed)
@@ -160,10 +176,12 @@ def main(argv=None):
         # The logo shares its lines with the info block, so the terminal decides
         # how wide it may be -- see hatchment.fastfetch. A constant here was
         # only ever right in a terminal the width of the one it was picked in.
-        size = fastfetch.fit(FASTFETCH_LOGO)
-        write(FASTFETCH_LOGO, draw_at(blazon, size.cols))
+        size, note = fastfetch.install(FASTFETCH_LOGO,
+                                       lambda cols: draw_at(blazon, cols))
         if not args.quiet:
             print("\n-> %s (%s)" % (FASTFETCH_LOGO, size), file=sys.stderr)
+            if note:
+                print("   %s" % note, file=sys.stderr)
 
     if args.menu_icon:
         if not menuicon.available():
