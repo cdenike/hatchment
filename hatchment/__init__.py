@@ -1,4 +1,8 @@
-"""hatchment -- procedural heraldry for the terminal."""
+"""hatchment -- procedural heraldry for the terminal.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
+"""
 
 __version__ = "0.1.14"
 

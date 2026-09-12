@@ -10,6 +10,9 @@ It is a reader, not a model: a phrase list and a few rules about which word a
 colour belongs to. That keeps it offline, instant and predictable -- the same
 words and the same seed always make the same arms -- and it says plainly what
 it did not understand rather than guessing at a dragon it cannot draw.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import difflib

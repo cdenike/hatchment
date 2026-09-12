@@ -5,7 +5,7 @@ pkgrel=1
 pkgdesc="Procedural heraldry for the terminal: a random coat of arms as braille art for fastfetch and the Omarchy screensaver"
 arch=('any')
 url="https://github.com/cdenike/hatchment"
-license=('MIT')
+license=('GPL-3.0-or-later')
 depends=('python' 'librsvg')
 optdepends=('gtk4: graphical interface'
             'libadwaita: graphical interface'

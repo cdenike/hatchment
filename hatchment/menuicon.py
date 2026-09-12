@@ -12,6 +12,9 @@ is not in the layout -- which is why this only has to replace the button.
 
 Nothing here is destructive: the swap is one id in the bar layout, restore()
 puts the original back, and uninstall() removes the plugin directory as well.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import json
@@ -41,7 +44,7 @@ MANIFEST = {
     "name": "Hatchment menu",
     "version": "1.0.0",
     "author": "hatchment",
-    "license": "MIT",
+    "license": "GPL-3.0-or-later",
     "description": "The Omarchy menu button, wearing the current coat of arms",
     "kinds": ["bar-widget"],
     "entryPoints": {"barWidget": "BarWidget.qml"},

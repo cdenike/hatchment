@@ -4,6 +4,9 @@ The preview shows the braille art rather than the SVG on purpose: braille is
 what actually gets installed, and the two differ (the SVG keeps Petra Sancta
 hatching, the braille flattens to two tones). Previewing the prettier one would
 be a promise the install cannot keep.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import os

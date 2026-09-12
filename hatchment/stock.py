@@ -17,6 +17,9 @@ config that is not already stock is moved aside under Omarchy's own backup
 name, `.bak.<seconds>` -- the convention omarchy-refresh-config uses -- so a
 reset can be undone by hand. Only the menu plugin is deleted outright: it is
 hatchment's own generated files, and setting the icon again recreates them.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import os

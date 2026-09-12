@@ -8,6 +8,9 @@ Everything renders monochrome. Tinctures become Petra Sancta hatching (vertical
 lines for gules, horizontal for azure, dots for or), which is how engravers have
 encoded colour in one ink since the 1630s. It is also, conveniently, the only
 thing a braille cell can say.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import random

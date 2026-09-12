@@ -11,6 +11,9 @@ it can build a polygon from.
 Amplitude is deliberately generous. At 24 columns the shield is 48 dots across,
 so a wave one unit deep is half a dot and simply disappears; these are sized to
 survive being thresholded to 1-bit, not to look correct on parchment.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import math

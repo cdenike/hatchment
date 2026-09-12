@@ -10,6 +10,9 @@ edge of the terminal, and with `display.disableLinewrap` set (which Omarchy's
 config does) the overflow is silently truncated rather than wrapped. Losing the
 right-hand end of every line reads as a broken config, so overshooting is the
 failure worth avoiding here.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import os

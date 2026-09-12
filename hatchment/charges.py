@@ -12,6 +12,9 @@ cell has one bit. Limbs, strings and antennae are filled polygons rather than
 strokes, so they take the charge's tincture in a colour export instead of the
 outline's black. Detail that must read as a gap -- an eye, a rib, a nail hole
 -- is drawn in white, as the bee's stripes already are.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import math

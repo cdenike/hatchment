@@ -14,6 +14,9 @@ shield. Each setting is a recipe in those terms.
 
 Ground styles: a mount (one hill), a trimount (three), a flat base, dunes,
 water, or none with flames or clouds rising from the rim.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 from .charges import article

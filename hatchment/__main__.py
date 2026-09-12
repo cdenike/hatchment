@@ -5,6 +5,9 @@ program's name into a terminal almost always wants. Any argument means the
 caller has something specific in mind, so it goes to the command line instead --
 which also keeps `hatchment --help` and `hatchment --fastfetch` behaving the way
 a shell user expects rather than opening a window and ignoring them.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import sys

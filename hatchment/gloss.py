@@ -8,6 +8,9 @@ The output language follows the user's locale. Only English ships: the glossary
 is a table per language, so adding one is data rather than code, but shipping
 translations that cannot be checked would be worse than shipping none. See
 LANGS at the bottom for what adding a language involves.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import locale

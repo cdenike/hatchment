@@ -8,6 +8,9 @@ same from here, which is the point.
 Everything degrades rather than raising. A missing palette means there is no
 Omarchy theme to follow -- plain Arch, or any other desktop -- and the app uses
 GENERIC below instead; it is not worth a crash either way.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import pathlib

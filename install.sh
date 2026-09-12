@@ -4,6 +4,9 @@
 # Everything lands under the XDG user directories, so the desktop entry and the
 # icon are picked up by any freedesktop-compliant launcher -- the Omarchy menu
 # included -- without touching /usr.
+#
+# Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+# Public License, version 3 or later, with no warranty. See LICENSE.
 
 set -euo pipefail
 

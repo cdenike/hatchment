@@ -14,6 +14,9 @@ Recursion depth is capped low on purpose: the target is 50-110 dots across, so a
 fourth or fifth subdivision stops being a pattern and becomes grey. Ink is kept
 under about half the shield, because the legibility gate discards anything
 denser -- a pattern that fails it does not look bad, it simply never appears.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import math

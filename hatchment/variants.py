@@ -17,6 +17,9 @@ rather than drawn from it, so choosing one never shifts anything else a roll
 picks.
 
 Drawn in the same 200-unit box as hatchment.charges.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import math

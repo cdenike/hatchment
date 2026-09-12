@@ -1,0 +1,16 @@
+Caden DeNike wrote this.
+
+The work is his: the generator that builds a blazon under the rules of
+heraldry, the drawing that depicts it, the braille packing that fits it into a
+terminal, and the program around them. His copyright notice appears at the top
+of every source file and in the LICENSE.
+
+Under the GNU General Public License you are welcome to use this, change it and
+pass it on. What you may not do is present it as your own: section 5 of the
+licence requires that a modified version carry prominent notices saying you
+changed it and when, and that it keep the notices already in it. Removing them
+is not a style choice -- it terminates the rights the licence grants, under
+section 8.
+
+Releases up to and including v0.1.14 were published under the MIT licence, and
+that grant stands for those versions. This version onward is GPL.

@@ -12,6 +12,9 @@ Only one external program is needed: rsvg-convert, to rasterise the vector.
 Thresholding its output to 1-bit used to be a second call, to ImageMagick, for
 work the standard library already does -- 21 MiB of dependency and a process
 spawn per render to compare bytes against a number.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import struct

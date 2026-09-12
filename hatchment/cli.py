@@ -1,4 +1,8 @@
-"""hatchment -- generate a random coat of arms and wear it on your desktop."""
+"""hatchment -- generate a random coat of arms and wear it on your desktop.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
+"""
 
 import argparse
 import os

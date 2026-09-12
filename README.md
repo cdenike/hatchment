@@ -716,4 +716,17 @@ are about 8.5×16px, and the dot grid needs correcting for that.
 
 ## Licence
 
-MIT.
+Copyright (C) 2026 Caden DeNike. Free software under the
+[GNU General Public License, version 3 or later](LICENSE): use it, read it,
+change it, pass it on. What the licence asks in return is that a copy you pass
+on stays free -- the notice stays, and whoever receives it can get the source
+and the same rights you had.
+
+Every source file carries the notice, and [AUTHORS](AUTHORS) says whose work it
+is. Section 5 requires a modified version to say plainly that it was changed
+and to keep the notices already in it; section 8 ends the rights of anyone who
+strips them.
+
+Releases up to and including v0.1.14 were published under the MIT licence.
+That grant is not withdrawn: a copy obtained under MIT stays under MIT, for
+that version. The change applies to this version onward.

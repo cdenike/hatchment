@@ -11,6 +11,9 @@ nears the limit, or asks for solid fills instead.
 In colour mode the hatching gives way to real tinctures, which is what
 keeps a patterned field from swallowing the charge laid over it.
 Exports take that path; the terminal never does.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 # The shield is a classic heater: straight sides, a shoulder, then curves to a

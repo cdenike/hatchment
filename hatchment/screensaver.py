@@ -15,6 +15,9 @@ Art that is too small is merely a modest shield on a wide screen. Art that is
 taller than the terminal is clipped, and ttfx -- which centres the canvas it is
 given -- then has nothing to centre. Every estimate below is therefore biased
 towards fewer rows.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import json

@@ -13,6 +13,9 @@ a terminal without the feature will never send.
 Only the ratio is used, never the absolute size, because the ratio is the part
 that survives display scaling: a window rendered at 2x reports both dimensions
 doubled and divides back to the same shape.
+
+Copyright (C) 2026 Caden DeNike. Free software under the GNU General
+Public License, version 3 or later, with no warranty. See LICENSE.
 """
 
 import fcntl
