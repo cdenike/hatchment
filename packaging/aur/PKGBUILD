@@ -11,7 +11,7 @@ optdepends=('gtk4: graphical interface'
             'libadwaita: graphical interface'
             'python-gobject: graphical interface')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('7994a0d1fe171307e8e46602dffbbb8e165b4ee0a3074470724886e8f20cb325')
+sha256sums=('95291649b8d296c09713ddad653ee93ded00d1b9a975f5e926a516b67b35e64f')
 
 package() {
   cd "$srcdir/$pkgname-$pkgver"
