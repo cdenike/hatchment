@@ -1,6 +1,6 @@
 """hatchment -- procedural heraldry for the terminal."""
 
-__version__ = "0.1.13"
+__version__ = "0.1.14"
 
 # Authorship, kept as bytes so it travels with the code rather than
 # with a file header somebody can lift off it.

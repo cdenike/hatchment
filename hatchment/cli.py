@@ -7,7 +7,7 @@ import random
 import subprocess
 import sys
 
-from . import fastfetch, menuicon, prompt, screensaver, stock
+from . import __version__, fastfetch, menuicon, prompt, screensaver, stock
 from .blazon import THEMES, Blazon, new_seed, vocabulary_for
 from .draw import render
 from .gloss import plain
@@ -115,6 +115,13 @@ def main(argv=None):
     p = argparse.ArgumentParser(
         prog="hatchment",
         description="Generate a random coat of arms as braille art.")
+    # Worth having for its own sake, and worth having because the arms this
+    # draws depend on the version: a seed rolls in the vocabulary of the
+    # release that made it, so "which version is this?" is a question about the
+    # output and not only about the package.
+    p.add_argument("--version", action="version",
+                   version="hatchment %s" % __version__,
+                   help="print the version and exit")
     p.add_argument("--seed", help="reproduce a specific coat of arms")
     p.add_argument("--prompt", metavar="TEXT",
                    help='describe the arms, e.g. "three gold lions on red, a '
